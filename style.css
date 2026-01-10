@@ -732,3 +732,298 @@ html.dark .day-cell.holiday-day.abnormal-day {
     background: linear-gradient(135deg, #991b1b 0%, #854d0e 100%);
     border: 2px dashed #ef4444;
 }
+
+/* ======================================= */
+/* 費用管理系統樣式 (Expense Management) */
+/* ======================================= */
+
+/* 發票預覽容器 */
+#invoice-preview {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+#invoice-preview-img {
+    max-width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: contain;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    transition: transform 0.3s ease;
+}
+
+#invoice-preview-img:hover {
+    transform: scale(1.02);
+}
+
+html.dark #invoice-preview-img {
+    border-color: #4b5563;
+}
+
+/* 費用金額顯示 */
+.expense-amount {
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* 費用狀態標籤 */
+.expense-status-pending {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border: 1px solid #fbbf24;
+}
+
+.expense-status-approved {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.expense-status-rejected {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+html.dark .expense-status-pending {
+    background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+    color: #fde68a;
+}
+
+html.dark .expense-status-approved {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+    color: #d1fae5;
+}
+
+html.dark .expense-status-rejected {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+    color: #fecaca;
+}
+
+/* 費用申請卡片 */
+.expense-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.expense-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+html.dark .expense-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.expense-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(102, 126, 234, 0.15);
+}
+
+/* 發票圖示按鈕 */
+.invoice-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.invoice-icon-btn:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+html.dark .invoice-icon-btn {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+}
+
+html.dark .invoice-icon-btn:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+}
+
+/* 費用記錄標籤切換 */
+.expense-tab {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.expense-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.expense-tab:not(.active) {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.expense-tab:not(.active):hover {
+    background: #e5e7eb;
+}
+
+html.dark .expense-tab:not(.active) {
+    background: #374151;
+    color: #9ca3af;
+}
+
+html.dark .expense-tab:not(.active):hover {
+    background: #4b5563;
+}
+
+/* 審核意見輸入框 */
+.review-comment-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    resize: vertical;
+    transition: all 0.2s;
+}
+
+.review-comment-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+html.dark .review-comment-input {
+    background: #1f2937;
+    border-color: #4b5563;
+    color: #f3f4f6;
+}
+
+html.dark .review-comment-input:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+}
+
+/* 管理員審核區塊 */
+.admin-review-section {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #bae6fd;
+}
+
+html.dark .admin-review-section {
+    background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+    border-color: #0369a1;
+}
+
+/* 費用統計卡片 */
+.expense-stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+html.dark .expense-stat-card {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+.expense-stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+html.dark .expense-stat-label {
+    color: #9ca3af;
+}
+
+.expense-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 響應式調整 */
+@media (max-width: 640px) {
+    .expense-card {
+        padding: 1rem;
+    }
+    
+    .expense-amount {
+        font-size: 1.25rem;
+    }
+    
+    .expense-stat-value {
+        font-size: 1.5rem;
+    }
+    
+    #invoice-preview-img {
+        max-height: 250px;
+    }
+}
+
+/* 發票上傳按鈕動畫 */
+.invoice-upload-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.invoice-upload-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.invoice-upload-btn:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* 費用記錄項目 hover 效果 */
+.expense-record-item {
+    transition: all 0.3s ease;
+}
+
+.expense-record-item:hover {
+    transform: translateX(8px);
+}

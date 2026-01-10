@@ -2083,11 +2083,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // UI切換邏輯
     const switchTab = (tabId) => {
         // 修改這一行，加入 'shift-view'
-        const tabs = ['dashboard-view', 'monthly-view', 'location-view', 'shift-view', 'admin-view', 'overtime-view', 'leave-view', 'salary-view'];
-        
+        const tabs = ['dashboard-view', 'monthly-view', 'location-view', 'shift-view', 
+              'admin-view', 'overtime-view', 'leave-view', 'salary-view', 'expense-view']; // 👈 加入
+
         // 修改這一行，加入 'tab-shift-btn'
-        const btns = ['tab-dashboard-btn', 'tab-monthly-btn', 'tab-location-btn', 'tab-shift-btn', 'tab-admin-btn', 'tab-overtime-btn', 'tab-leave-btn', 'tab-salary-btn'];
-    
+        const btns = ['tab-dashboard-btn', 'tab-monthly-btn', 'tab-location-btn', 'tab-shift-btn', 
+              'tab-admin-btn', 'tab-overtime-btn', 'tab-leave-btn', 'tab-salary-btn', 'tab-expense-btn']; // 👈 加入
+
         // 1. 移除舊的 active 類別和 CSS 屬性
         tabs.forEach(id => {
             const tabElement = document.getElementById(id);
@@ -2130,6 +2132,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             fetchAndRenderReviewRequests();
             loadPendingOvertimeRequests();
             loadPendingLeaveRequests();
+            loadPendingAdvanceRequests();        // 👈 新增
+            loadPendingReimbursementRequests();  // 👈 新增
             displayAdminAnnouncements();
             initAdminAnalysis();
             loadAllUsers();
@@ -2139,6 +2143,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             initLeaveTab();
         } else if (tabId === 'salary-view') { // 👈 新增
             initSalaryTab();
+        } else if (tabId === 'expense-view') {
+            initExpenseTab();
         }
         
     };
@@ -2534,6 +2540,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     tabSalaryBtn.addEventListener('click', () => {switchTab('salary-view');});
+    const tabExpenseBtn = document.getElementById('tab-expense-btn');
+    if (tabExpenseBtn) {
+        tabExpenseBtn.addEventListener('click', () => switchTab('expense-view'));
+    }
     tabDashboardBtn.addEventListener('click', () => switchTab('dashboard-view'));
     
     tabLocationBtn.addEventListener('click', () => switchTab('location-view'));
@@ -4342,3 +4352,857 @@ async function toggleUserStatus(userId, userName, action) {
         showNotification('操作失敗，請稍後再試', 'error');
     }
 }
+
+
+// ==================== 💰 費用管理系統 ====================
+// 整合進 script.js
+
+/**
+ * 初始化費用管理分頁
+ */
+function initExpenseTab() {
+    console.log('初始化費用管理分頁');
+    
+    // 設定預設日期為今天
+    const today = new Date().toISOString().split('T')[0];
+    const advanceDateInput = document.getElementById('advance-date');
+    const expenseDateInput = document.getElementById('expense-date');
+    
+    if (advanceDateInput) advanceDateInput.value = today;
+    if (expenseDateInput) expenseDateInput.value = today;
+    
+    // 載入記錄
+    loadExpenseRecords();
+}
+
+// ==================== 💰 費用管理系統 ====================
+// expense.js - 費用管理功能（預支申請、報銷申請）
+
+/**
+ * 初始化費用管理分頁
+ */
+function initExpenseTab() {
+    console.log('初始化費用管理分頁');
+    
+    // 設定預設日期為今天
+    const today = new Date().toISOString().split('T')[0];
+    const advanceDateInput = document.getElementById('advance-date');
+    const expenseDateInput = document.getElementById('expense-date');
+    
+    if (advanceDateInput) advanceDateInput.value = today;
+    if (expenseDateInput) expenseDateInput.value = today;
+    
+    // 載入記錄
+    loadExpenseRecords();
+}
+
+// ==================== 💰 預支申請功能 ====================
+
+/**
+ * 提交預支申請
+ */
+async function submitAdvanceApplication() {
+    const dateInput = document.getElementById('advance-date');
+    const amountInput = document.getElementById('advance-amount');
+    const purposeInput = document.getElementById('advance-purpose');
+    const submitBtn = document.getElementById('submit-advance-btn');
+    
+    const date = dateInput?.value;
+    const amount = parseFloat(amountInput?.value || 0);
+    const purpose = purposeInput?.value.trim();
+    
+    // 驗證
+    if (!date) {
+        showNotification('請選擇申請日期', 'error');
+        return;
+    }
+    
+    if (amount <= 0) {
+        showNotification('請輸入有效的申請金額', 'error');
+        return;
+    }
+    
+    if (!purpose || purpose.length < 5) {
+        showNotification('請填寫申請用途（至少 5 個字）', 'error');
+        return;
+    }
+    
+    const loadingText = t('LOADING') || '提交中...';
+    
+    if (submitBtn) {
+        generalButtonState(submitBtn, 'processing', loadingText);
+    }
+    
+    try {
+        const userId = localStorage.getItem('sessionUserId');
+        
+        const res = await callApifetch(
+            `submitAdvanceApplication&userId=${userId}&date=${date}&amount=${amount}&purpose=${encodeURIComponent(purpose)}`
+        );
+        
+        if (res.ok) {
+            showNotification('預支申請已送出，等待主管審核', 'success');
+            
+            // 清空表單
+            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            if (amountInput) amountInput.value = '';
+            if (purposeInput) purposeInput.value = '';
+            
+            // 重新載入記錄
+            loadExpenseRecords();
+            
+        } else {
+            showNotification(res.msg || '提交失敗', 'error');
+        }
+        
+    } catch (error) {
+        console.error('提交預支申請失敗:', error);
+        showNotification('提交失敗，請稍後再試', 'error');
+        
+    } finally {
+        if (submitBtn) {
+            generalButtonState(submitBtn, 'idle');
+        }
+    }
+}
+
+// ==================== 📄 報銷申請功能 ====================
+
+/**
+ * 提交報銷申請
+ */
+async function submitReimbursementApplication() {
+    const fileInput = document.getElementById('invoice-upload');
+    const dateInput = document.getElementById('expense-date');
+    const summaryInput = document.getElementById('expense-summary');
+    const amountInput = document.getElementById('expense-amount');
+    const invoiceNumberInput = document.getElementById('invoice-number');
+    const noteInput = document.getElementById('expense-note');
+    const submitBtn = document.getElementById('submit-reimbursement-btn');
+    
+    const file = fileInput?.files[0];
+    const date = dateInput?.value;
+    const summary = summaryInput?.value.trim();
+    const amount = parseFloat(amountInput?.value || 0);
+    const invoiceNumber = invoiceNumberInput?.value.trim();
+    const note = noteInput?.value.trim();
+    
+    // 驗證
+    if (!file) {
+        showNotification('請上傳發票照片', 'error');
+        return;
+    }
+    
+    if (!date) {
+        showNotification('請選擇費用日期', 'error');
+        return;
+    }
+    
+    if (!summary || summary.length < 2) {
+        showNotification('請填寫費用摘要（至少 2 個字）', 'error');
+        return;
+    }
+    
+    if (amount <= 0) {
+        showNotification('請輸入有效的報銷金額', 'error');
+        return;
+    }
+    
+    const loadingText = t('LOADING') || '上傳中...';
+    
+    if (submitBtn) {
+        generalButtonState(submitBtn, 'processing', loadingText);
+    }
+    
+    try {
+        // 將圖片轉為 Base64
+        const base64Image = await fileToBase64(file);
+        
+        const userId = localStorage.getItem('sessionUserId');
+        
+        const data = {
+            userId: userId,
+            date: date,
+            summary: summary,
+            amount: amount,
+            invoiceNumber: invoiceNumber,
+            note: note,
+            invoiceImage: base64Image,
+            fileName: file.name
+        };
+        
+        const res = await callApifetch(
+            `submitReimbursement&data=${encodeURIComponent(JSON.stringify(data))}`
+        );
+        
+        if (res.ok) {
+            showNotification('報銷申請已送出，等待主管審核', 'success');
+            
+            // 清空表單
+            if (fileInput) fileInput.value = '';
+            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            if (summaryInput) summaryInput.value = '';
+            if (amountInput) amountInput.value = '';
+            if (invoiceNumberInput) invoiceNumberInput.value = '';
+            if (noteInput) noteInput.value = '';
+            
+            // 隱藏預覽
+            const preview = document.getElementById('invoice-preview');
+            const fileNameEl = document.getElementById('invoice-file-name');
+            if (preview) preview.classList.add('hidden');
+            if (fileNameEl) fileNameEl.textContent = '尚未選擇檔案';
+            
+            // 重新載入記錄
+            loadExpenseRecords();
+            
+        } else {
+            showNotification(res.msg || '提交失敗', 'error');
+        }
+        
+    } catch (error) {
+        console.error('提交報銷申請失敗:', error);
+        showNotification('提交失敗，請稍後再試', 'error');
+        
+    } finally {
+        if (submitBtn) {
+            generalButtonState(submitBtn, 'idle');
+        }
+    }
+}
+
+/**
+ * 將檔案轉換為 Base64
+ */
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            // 移除 data:image/...;base64, 前綴
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// ==================== 📊 載入申請記錄 ====================
+
+/**
+ * 載入費用申請記錄
+ */
+async function loadExpenseRecords() {
+    await loadAdvanceRecords();
+    await loadReimbursementRecords();
+}
+
+/**
+ * 載入預支申請記錄
+ */
+async function loadAdvanceRecords() {
+    const loadingEl = document.getElementById('advance-records-loading');
+    const emptyEl = document.getElementById('advance-records-empty');
+    const listEl = document.getElementById('advance-records');
+    
+    try {
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (listEl) listEl.innerHTML = '';
+        
+        const userId = localStorage.getItem('sessionUserId');
+        const res = await callApifetch(`getAdvanceRecords&userId=${userId}`);
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        
+        if (res.ok && res.records && res.records.length > 0) {
+            renderAdvanceRecords(res.records);
+        } else {
+            if (emptyEl) emptyEl.style.display = 'block';
+        }
+        
+    } catch (error) {
+        console.error('載入預支記錄失敗:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'block';
+    }
+}
+
+/**
+ * 渲染預支申請記錄
+ */
+function renderAdvanceRecords(records) {
+    const listEl = document.getElementById('advance-records');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    records.forEach(record => {
+        const li = document.createElement('li');
+        li.className = 'p-4 bg-gray-50 dark:bg-gray-700 rounded-lg';
+        
+        let statusClass = 'bg-yellow-100 text-yellow-700';
+        let statusText = '審核中';
+        let statusIcon = '⏳';
+        
+        if (record.status === 'APPROVED') {
+            statusClass = 'bg-green-100 text-green-700';
+            statusText = '已核准';
+            statusIcon = '✅';
+        } else if (record.status === 'REJECTED') {
+            statusClass = 'bg-red-100 text-red-700';
+            statusText = '已拒絕';
+            statusIcon = '❌';
+        }
+        
+        li.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="font-bold text-gray-800 dark:text-white">
+                            NT$ ${record.amount.toLocaleString()}
+                        </span>
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${statusClass}">
+                            ${statusIcon} ${statusText}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        ${record.purpose}
+                    </p>
+                    <p class="text-xs text-gray-500">
+                        申請日期：${record.date}
+                    </p>
+                    ${record.reviewComment ? `
+                        <div class="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-4 border-blue-400">
+                            <p class="text-xs text-blue-800 dark:text-blue-300">
+                                <strong>審核意見：</strong>${record.reviewComment}
+                            </p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+        listEl.appendChild(li);
+    });
+}
+
+/**
+ * 載入報銷申請記錄
+ */
+async function loadReimbursementRecords() {
+    const loadingEl = document.getElementById('reimbursement-records-loading');
+    const emptyEl = document.getElementById('reimbursement-records-empty');
+    const listEl = document.getElementById('reimbursement-records');
+    
+    try {
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (listEl) listEl.innerHTML = '';
+        
+        const userId = localStorage.getItem('sessionUserId');
+        const res = await callApifetch(`getReimbursementRecords&userId=${userId}`);
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        
+        if (res.ok && res.records && res.records.length > 0) {
+            renderReimbursementRecords(res.records);
+        } else {
+            if (emptyEl) emptyEl.style.display = 'block';
+        }
+        
+    } catch (error) {
+        console.error('載入報銷記錄失敗:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'block';
+    }
+}
+
+/**
+ * 渲染報銷申請記錄
+ */
+function renderReimbursementRecords(records) {
+    const listEl = document.getElementById('reimbursement-records');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    records.forEach(record => {
+        const li = document.createElement('li');
+        li.className = 'p-4 bg-gray-50 dark:bg-gray-700 rounded-lg';
+        
+        let statusClass = 'bg-yellow-100 text-yellow-700';
+        let statusText = '審核中';
+        let statusIcon = '⏳';
+        
+        if (record.status === 'APPROVED') {
+            statusClass = 'bg-green-100 text-green-700';
+            statusText = '已核准';
+            statusIcon = '✅';
+        } else if (record.status === 'REJECTED') {
+            statusClass = 'bg-red-100 text-red-700';
+            statusText = '已拒絕';
+            statusIcon = '❌';
+        }
+        
+        li.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="font-bold text-gray-800 dark:text-white">
+                            NT$ ${record.amount.toLocaleString()}
+                        </span>
+                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${statusClass}">
+                            ${statusIcon} ${statusText}
+                        </span>
+                    </div>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        ${record.summary}
+                    </p>
+                    <p class="text-xs text-gray-500">
+                        費用日期：${record.date}
+                    </p>
+                    ${record.invoiceNumber ? `
+                        <p class="text-xs text-gray-500">
+                            發票號碼：${record.invoiceNumber}
+                        </p>
+                    ` : ''}
+                    ${record.note ? `
+                        <p class="text-xs text-gray-500 mt-1">
+                            備註：${record.note}
+                        </p>
+                    ` : ''}
+                    ${record.reviewComment ? `
+                        <div class="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-4 border-blue-400">
+                            <p class="text-xs text-blue-800 dark:text-blue-300">
+                                <strong>審核意見：</strong>${record.reviewComment}
+                            </p>
+                        </div>
+                    ` : ''}
+                </div>
+                ${record.invoiceUrl ? `
+                    <a href="${record.invoiceUrl}" 
+                       target="_blank"
+                       class="ml-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded font-semibold">
+                        查看發票
+                    </a>
+                ` : ''}
+            </div>
+        `;
+        
+        listEl.appendChild(li);
+    });
+}
+
+// ==================== 📸 發票上傳預覽功能 ====================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const invoiceUpload = document.getElementById('invoice-upload');
+    
+    if (invoiceUpload) {
+        invoiceUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            
+            if (file) {
+                // 顯示檔案名稱
+                const fileNameEl = document.getElementById('invoice-file-name');
+                if (fileNameEl) {
+                    fileNameEl.textContent = file.name;
+                }
+                
+                // 顯示預覽圖片
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewContainer = document.getElementById('invoice-preview');
+                    const previewImg = document.getElementById('invoice-preview-img');
+                    
+                    if (previewContainer && previewImg) {
+                        previewImg.src = e.target.result;
+                        previewContainer.classList.remove('hidden');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // 記錄切換
+    const tabAdvanceBtn = document.getElementById('tab-advance-records');
+    const tabReimbursementBtn = document.getElementById('tab-reimbursement-records');
+    
+    if (tabAdvanceBtn && tabReimbursementBtn) {
+        tabAdvanceBtn.addEventListener('click', () => {
+            tabAdvanceBtn.classList.remove('bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300');
+            tabAdvanceBtn.classList.add('bg-indigo-600', 'text-white');
+            
+            tabReimbursementBtn.classList.remove('bg-indigo-600', 'text-white');
+            tabReimbursementBtn.classList.add('bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300');
+            
+            document.getElementById('advance-records-list').style.display = 'block';
+            document.getElementById('reimbursement-records-list').style.display = 'none';
+        });
+        
+        tabReimbursementBtn.addEventListener('click', () => {
+            tabAdvanceBtn.classList.remove('bg-indigo-600', 'text-white');
+            tabAdvanceBtn.classList.add('bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300');
+            
+            tabReimbursementBtn.classList.remove('bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300');
+            tabReimbursementBtn.classList.add('bg-indigo-600', 'text-white');
+            
+            document.getElementById('advance-records-list').style.display = 'none';
+            document.getElementById('reimbursement-records-list').style.display = 'block';
+        });
+    }
+    
+    // 預支申請按鈕
+    const submitAdvanceBtn = document.getElementById('submit-advance-btn');
+    if (submitAdvanceBtn) {
+        submitAdvanceBtn.addEventListener('click', submitAdvanceApplication);
+    }
+    
+    // 報銷申請按鈕
+    const submitReimbursementBtn = document.getElementById('submit-reimbursement-btn');
+    if (submitReimbursementBtn) {
+        submitReimbursementBtn.addEventListener('click', submitReimbursementApplication);
+    }
+});
+
+// ==================== 💰 管理員審核費用申請功能 ====================
+// 在 expense.js 或 script.js 中加入以下程式碼
+
+/**
+ * 載入待審核的預支申請
+ */
+async function loadPendingAdvanceRequests() {
+    const loadingEl = document.getElementById('advance-requests-loading');
+    const emptyEl = document.getElementById('advance-requests-empty');
+    const listEl = document.getElementById('pending-advance-list');
+    
+    try {
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (listEl) listEl.innerHTML = '';
+        
+        const res = await callApifetch('getPendingAdvanceRequests');
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        
+        if (res.ok && res.records && res.records.length > 0) {
+            renderPendingAdvanceRequests(res.records);
+        } else {
+            if (emptyEl) emptyEl.style.display = 'block';
+        }
+        
+    } catch (error) {
+        console.error('載入預支申請失敗:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'block';
+    }
+}
+
+/**
+ * 渲染待審核的預支申請
+ */
+function renderPendingAdvanceRequests(records) {
+    const listEl = document.getElementById('pending-advance-list');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    records.forEach((record, index) => {
+        const li = document.createElement('li');
+        li.className = 'p-4 bg-gray-50 dark:bg-gray-700 rounded-lg';
+        
+        li.innerHTML = `
+            <div class="flex flex-col space-y-3">
+                <!-- 申請資訊 -->
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="font-bold text-gray-800 dark:text-white">
+                                ${record.userName}
+                            </span>
+                            <span class="text-xs px-2 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300">
+                                預支申請
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                <strong>申請日期：</strong>${record.date}
+                            </p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                <strong>申請金額：</strong>
+                                <span class="font-bold text-lg text-indigo-600 dark:text-indigo-400">
+                                    NT$ ${record.amount.toLocaleString()}
+                                </span>
+                            </p>
+                            <div class="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-600 rounded">
+                                <p class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                                    📋 申請用途：
+                                </p>
+                                <p class="text-sm text-blue-700 dark:text-blue-400">
+                                    ${record.purpose}
+                                </p>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">
+                                申請時間：${new Date(record.appliedAt).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 審核意見輸入 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        審核意見（選填）
+                    </label>
+                    <textarea id="advance-comment-${index}" 
+                              rows="2" 
+                              placeholder="填寫審核意見..."
+                              class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white"></textarea>
+                </div>
+                
+                <!-- 審核按鈕 -->
+                <div class="flex space-x-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <button onclick="reviewAdvanceApplication('${record.id}', '${index}', 'approve')"
+                            class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors">
+                        ✅ 核准
+                    </button>
+                    <button onclick="reviewAdvanceApplication('${record.id}', '${index}', 'reject')"
+                            class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors">
+                        ❌ 拒絕
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        listEl.appendChild(li);
+    });
+}
+
+/**
+ * 審核預支申請
+ */
+async function reviewAdvanceApplication(applicationId, index, action) {
+    const commentInput = document.getElementById(`advance-comment-${index}`);
+    const comment = commentInput?.value.trim() || '';
+    
+    const actionText = action === 'approve' ? '核准' : '拒絕';
+    
+    if (!confirm(`確定要${actionText}此預支申請嗎？`)) {
+        return;
+    }
+    
+    try {
+        showNotification('處理中...', 'info');
+        
+        const reviewerId = localStorage.getItem('sessionUserId');
+        
+        const res = await callApifetch(
+            `reviewAdvanceApplication&id=${encodeURIComponent(applicationId)}&action=${action}&comment=${encodeURIComponent(comment)}&reviewerId=${reviewerId}`
+        );
+        
+        if (res.ok) {
+            showNotification(res.msg || `已${actionText}申請`, 'success');
+            
+            // 重新載入待審核列表
+            await loadPendingAdvanceRequests();
+            
+        } else {
+            showNotification(res.msg || '操作失敗', 'error');
+        }
+        
+    } catch (error) {
+        console.error('審核預支申請失敗:', error);
+        showNotification('操作失敗，請稍後再試', 'error');
+    }
+}
+
+/**
+ * 載入待審核的報銷申請
+ */
+async function loadPendingReimbursementRequests() {
+    const loadingEl = document.getElementById('reimbursement-requests-loading');
+    const emptyEl = document.getElementById('reimbursement-requests-empty');
+    const listEl = document.getElementById('pending-reimbursement-list');
+    
+    try {
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (listEl) listEl.innerHTML = '';
+        
+        const res = await callApifetch('getPendingReimbursementRequests');
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        
+        if (res.ok && res.records && res.records.length > 0) {
+            renderPendingReimbursementRequests(res.records);
+        } else {
+            if (emptyEl) emptyEl.style.display = 'block';
+        }
+        
+    } catch (error) {
+        console.error('載入報銷申請失敗:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'block';
+    }
+}
+
+/**
+ * 渲染待審核的報銷申請
+ */
+function renderPendingReimbursementRequests(records) {
+    const listEl = document.getElementById('pending-reimbursement-list');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    records.forEach((record, index) => {
+        const li = document.createElement('li');
+        li.className = 'p-4 bg-gray-50 dark:bg-gray-700 rounded-lg';
+        
+        li.innerHTML = `
+            <div class="flex flex-col space-y-3">
+                <!-- 申請資訊 -->
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="font-bold text-gray-800 dark:text-white">
+                                ${record.userName}
+                            </span>
+                            <span class="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
+                                報銷申請
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                <strong>費用日期：</strong>${record.date}
+                            </p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                <strong>報銷金額：</strong>
+                                <span class="font-bold text-lg text-purple-600 dark:text-purple-400">
+                                    NT$ ${record.amount.toLocaleString()}
+                                </span>
+                            </p>
+                            <div class="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-600 rounded">
+                                <p class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                                    📋 費用摘要：
+                                </p>
+                                <p class="text-sm text-blue-700 dark:text-blue-400">
+                                    ${record.summary}
+                                </p>
+                            </div>
+                            ${record.invoiceNumber ? `
+                                <p class="text-xs text-gray-500">
+                                    發票號碼：${record.invoiceNumber}
+                                </p>
+                            ` : ''}
+                            ${record.note ? `
+                                <p class="text-xs text-gray-500">
+                                    備註：${record.note}
+                                </p>
+                            ` : ''}
+                            <p class="text-xs text-gray-500 mt-2">
+                                申請時間：${new Date(record.appliedAt).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- 查看發票按鈕 -->
+                    ${record.invoiceUrl ? `
+                        <a href="${record.invoiceUrl}" 
+                           target="_blank"
+                           class="ml-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg font-semibold flex items-center space-x-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            <span>查看發票</span>
+                        </a>
+                    ` : ''}
+                </div>
+                
+                <!-- 審核意見輸入 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        審核意見（選填）
+                    </label>
+                    <textarea id="reimbursement-comment-${index}" 
+                              rows="2" 
+                              placeholder="填寫審核意見..."
+                              class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white"></textarea>
+                </div>
+                
+                <!-- 審核按鈕 -->
+                <div class="flex space-x-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <button onclick="reviewReimbursementApplication('${record.id}', '${index}', 'approve')"
+                            class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors">
+                        ✅ 核准
+                    </button>
+                    <button onclick="reviewReimbursementApplication('${record.id}', '${index}', 'reject')"
+                            class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors">
+                        ❌ 拒絕
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        listEl.appendChild(li);
+    });
+}
+
+/**
+ * 審核報銷申請
+ */
+async function reviewReimbursementApplication(applicationId, index, action) {
+    const commentInput = document.getElementById(`reimbursement-comment-${index}`);
+    const comment = commentInput?.value.trim() || '';
+    
+    const actionText = action === 'approve' ? '核准' : '拒絕';
+    
+    if (!confirm(`確定要${actionText}此報銷申請嗎？`)) {
+        return;
+    }
+    
+    try {
+        showNotification('處理中...', 'info');
+        
+        const reviewerId = localStorage.getItem('sessionUserId');
+        
+        const res = await callApifetch(
+            `reviewReimbursement&id=${encodeURIComponent(applicationId)}&action=${action}&comment=${encodeURIComponent(comment)}&reviewerId=${reviewerId}`
+        );
+        
+        if (res.ok) {
+            showNotification(res.msg || `已${actionText}申請`, 'success');
+            
+            // 重新載入待審核列表
+            await loadPendingReimbursementRequests();
+            
+        } else {
+            showNotification(res.msg || '操作失敗', 'error');
+        }
+        
+    } catch (error) {
+        console.error('審核報銷申請失敗:', error);
+        showNotification('操作失敗，請稍後再試', 'error');
+    }
+}
+
+// ==================== 在 switchTab 函數中加入 ====================
+// 當切換到管理員頁面時，載入費用申請
+// 修改 script.js 中的 switchTab 函數，在 admin-view 區塊加入：
+
+/*
+if (tabId === 'admin-view') {
+    fetchAndRenderReviewRequests();
+    loadPendingOvertimeRequests();
+    loadPendingLeaveRequests();
+    loadPendingAdvanceRequests();        // 👈 新增
+    loadPendingReimbursementRequests();  // 👈 新增
+    displayAdminAnnouncements();
+    initAdminAnalysis();
+    loadAllUsers();
+}
+*/

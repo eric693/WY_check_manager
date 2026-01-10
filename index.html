@@ -166,6 +166,10 @@
                     <!-- 👇 請假按鈕 -->
                     <button id="tab-leave-btn" data-i18n="TAB_LEAVE" class="py-2 px-4 rounded-full font-bold text-sm text-gray-600 bg-gray-200 dark:text-gray-300 dark:bg-gray-700">請假</button>
                     <button id="tab-admin-btn" data-i18n="TAB_ADMIN" class="py-2 px-4 rounded-full font-bold text-sm text-gray-600 bg-gray-200 dark:text-gray-300 dark:bg-gray-700" style="display: none;">管理員</button>
+                    <button id="tab-expense-btn" data-i18n="TAB_EXPENSE" 
+                            class="py-2 px-4 rounded-full font-bold text-sm text-gray-600 bg-gray-200 dark:text-gray-300 dark:bg-gray-700">
+                        費用
+                    </button>
                 </div>
                 
                 <!-- Dashboard View -->
@@ -805,7 +809,257 @@
                     </div>
                     
                 </section>
-               
+                
+                <!-- 💰 費用管理頁面 (Expense View) -->
+                <section id="expense-view" class="space-y-6" style="display: none;">
+                    
+                    <!-- 📋 預支申請表單 -->
+                    <div class="card p-6">
+                        <h2 data-i18n="EXPENSE_ADVANCE_TITLE" 
+                            class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                            💰 預支申請
+                        </h2>
+                        <p data-i18n="EXPENSE_ADVANCE_DESCRIPTION" 
+                        class="text-gray-500 dark:text-gray-400 mb-4">
+                            填寫以下資訊以提交預支申請
+                        </p>
+                        
+                        <div class="space-y-4">
+                            <!-- 申請日期 -->
+                            <div>
+                                <label data-i18n="EXPENSE_ADVANCE_DATE_LABEL" 
+                                    for="advance-date" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    申請日期
+                                </label>
+                                <input type="date" 
+                                    id="advance-date" 
+                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            
+                            <!-- 申請金額 -->
+                            <div>
+                                <label data-i18n="EXPENSE_ADVANCE_AMOUNT_LABEL" 
+                                    for="advance-amount" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    申請金額（元）
+                                </label>
+                                <input type="number" 
+                                    id="advance-amount" 
+                                    min="0"
+                                    step="1"
+                                    placeholder="0" 
+                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            
+                            <!-- 申請用途 -->
+                            <div>
+                                <label data-i18n="EXPENSE_ADVANCE_PURPOSE_LABEL" 
+                                    for="advance-purpose" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    申請用途
+                                </label>
+                                <textarea id="advance-purpose" 
+                                        rows="3" 
+                                        placeholder="請說明申請用途..."
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            </div>
+                            
+                            <!-- 提交按鈕 -->
+                            <button id="submit-advance-btn" 
+                                    data-i18n="BTN_SUBMIT_ADVANCE"
+                                    class="w-full py-3 px-4 rounded-lg font-bold btn-primary">
+                                提交預支申請
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 📄 報銷申請表單 -->
+                    <div class="card p-6">
+                        <h2 data-i18n="EXPENSE_REIMBURSEMENT_TITLE" 
+                            class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                            📄 報銷申請
+                        </h2>
+                        <p data-i18n="EXPENSE_REIMBURSEMENT_DESCRIPTION" 
+                        class="text-gray-500 dark:text-gray-400 mb-4">
+                            上傳發票並填寫會計憑證資訊
+                        </p>
+                        
+                        <div class="space-y-4">
+                            <!-- 上傳發票照片 -->
+                            <div>
+                                <label data-i18n="EXPENSE_INVOICE_UPLOAD_LABEL" 
+                                    for="invoice-upload" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    上傳發票照片 <span class="text-red-500">*</span>
+                                </label>
+                                <div class="flex items-center space-x-3">
+                                    <input type="file" 
+                                        id="invoice-upload" 
+                                        accept="image/*"
+                                        capture="environment"
+                                        class="hidden">
+                                    <button type="button"
+                                            onclick="document.getElementById('invoice-upload').click()"
+                                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center space-x-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        <span data-i18n="BTN_TAKE_PHOTO">拍照上傳</span>
+                                    </button>
+                                    <span id="invoice-file-name" class="text-sm text-gray-500 dark:text-gray-400">
+                                        尚未選擇檔案
+                                    </span>
+                                </div>
+                                <!-- 預覽圖片 -->
+                                <div id="invoice-preview" class="mt-3 hidden">
+                                    <img id="invoice-preview-img" 
+                                        src="" 
+                                        alt="發票預覽" 
+                                        class="max-w-full h-auto rounded-lg border border-gray-300 dark:border-gray-600">
+                                </div>
+                            </div>
+                            
+                            <!-- 費用日期 -->
+                            <div>
+                                <label data-i18n="EXPENSE_DATE_LABEL" 
+                                    for="expense-date" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    費用日期 <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date" 
+                                    id="expense-date" 
+                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            
+                            <!-- 費用摘要 -->
+                            <div>
+                                <label data-i18n="EXPENSE_SUMMARY_LABEL" 
+                                    for="expense-summary" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    費用摘要 <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" 
+                                    id="expense-summary" 
+                                    placeholder="例如：購買辦公用品、客戶餐費"
+                                    maxlength="100"
+                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            
+                            <!-- 報銷金額 -->
+                            <div>
+                                <label data-i18n="EXPENSE_AMOUNT_LABEL" 
+                                    for="expense-amount" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    報銷金額（元）<span class="text-red-500">*</span>
+                                </label>
+                                <input type="number" 
+                                    id="expense-amount" 
+                                    min="0"
+                                    step="1"
+                                    placeholder="0" 
+                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            
+                            <!-- 發票號碼 -->
+                            <div>
+                                <label data-i18n="EXPENSE_INVOICE_NUMBER_LABEL" 
+                                    for="invoice-number" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    發票號碼
+                                </label>
+                                <input type="text" 
+                                    id="invoice-number" 
+                                    placeholder="例如：AA-12345678"
+                                    maxlength="20"
+                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            
+                            <!-- 備註 -->
+                            <div>
+                                <label data-i18n="EXPENSE_NOTE_LABEL" 
+                                    for="expense-note" 
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    備註
+                                </label>
+                                <textarea id="expense-note" 
+                                        rows="2" 
+                                        placeholder="其他補充說明..."
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            </div>
+                            
+                            <!-- 提交按鈕 -->
+                            <button id="submit-reimbursement-btn" 
+                                    data-i18n="BTN_SUBMIT_REIMBURSEMENT"
+                                    class="w-full py-3 px-4 rounded-lg font-bold btn-primary">
+                                生成憑證並送出
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 📊 我的申請記錄 -->
+                    <div class="card p-6">
+                        <h2 data-i18n="EXPENSE_RECORDS_TITLE" 
+                            class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                            📊 我的申請記錄
+                        </h2>
+                        <p data-i18n="EXPENSE_RECORDS_DESCRIPTION" 
+                        class="text-gray-500 dark:text-gray-400 mb-4">
+                            查看已提交的費用申請狀態
+                        </p>
+                        
+                        <!-- Tab 切換 -->
+                        <div class="flex space-x-2 mb-4">
+                            <button id="tab-advance-records" 
+                                    class="px-4 py-2 rounded-lg font-semibold text-sm bg-indigo-600 text-white">
+                                預支申請
+                            </button>
+                            <button id="tab-reimbursement-records" 
+                                    class="px-4 py-2 rounded-lg font-semibold text-sm bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                報銷申請
+                            </button>
+                        </div>
+                        
+                        <div id="expense-records-container">
+                            <!-- 預支記錄 -->
+                            <div id="advance-records-list">
+                                <div id="advance-records-loading" 
+                                    data-i18n="RECORDS_LOADING" 
+                                    class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                    正在載入記錄...
+                                </div>
+                                <div id="advance-records-empty" 
+                                    class="text-center text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg" 
+                                    style="display: none;">
+                                    <p data-i18n="ADVANCE_NO_RECORDS" class="font-semibold">
+                                        目前沒有預支申請記錄
+                                    </p>
+                                </div>
+                                <ul id="advance-records" class="space-y-3"></ul>
+                            </div>
+                            
+                            <!-- 報銷記錄 -->
+                            <div id="reimbursement-records-list" style="display: none;">
+                                <div id="reimbursement-records-loading" 
+                                    data-i18n="RECORDS_LOADING" 
+                                    class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                    正在載入記錄...
+                                </div>
+                                <div id="reimbursement-records-empty" 
+                                    class="text-center text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg" 
+                                    style="display: none;">
+                                    <p data-i18n="REIMBURSEMENT_NO_RECORDS" class="font-semibold">
+                                        目前沒有報銷申請記錄
+                                    </p>
+                                </div>
+                                <ul id="reimbursement-records" class="space-y-3"></ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </section>
+
                 <!-- 👇 薪資頁面 (Salary View) - 修改為跳轉按鈕 -->
                 <section id="salary-view" class="space-y-6" style="display: none;">
                     
@@ -1004,6 +1258,61 @@
                         </div>
                     </div>
                     
+                    <!-- 💰 待審核預支申請 -->
+                    <div class="card p-6 mt-6">
+                        <h2 data-i18n="ADMIN_ADVANCE_PENDING_TITLE" 
+                            class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                            💰 待審核預支申請
+                        </h2>
+                        <p data-i18n="ADMIN_ADVANCE_PENDING_DESC" 
+                        class="text-gray-500 dark:text-gray-400 mb-4">
+                            審核員工提出的預支申請
+                        </p>
+                        
+                        <div id="pending-advance-container">
+                            <div id="advance-requests-loading" 
+                                data-i18n="REQUESTS_LOADING" 
+                                class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                正在載入請求...
+                            </div>
+                            <div id="advance-requests-empty" 
+                                class="text-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 p-4 rounded-lg" 
+                                style="display: none;">
+                                <p data-i18n="ADVANCE_NO_PENDING" class="font-semibold">
+                                    太棒了！目前沒有待審核的預支申請。
+                                </p>
+                            </div>
+                            <ul id="pending-advance-list" class="space-y-3"></ul>
+                        </div>
+                    </div>
+
+                    <!-- 📄 待審核報銷申請 -->
+                    <div class="card p-6 mt-6">
+                        <h2 data-i18n="ADMIN_REIMBURSEMENT_PENDING_TITLE" 
+                            class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                            📄 待審核報銷申請
+                        </h2>
+                        <p data-i18n="ADMIN_REIMBURSEMENT_PENDING_DESC" 
+                        class="text-gray-500 dark:text-gray-400 mb-4">
+                            審核員工提出的報銷申請並查看發票
+                        </p>
+                        
+                        <div id="pending-reimbursement-container">
+                            <div id="reimbursement-requests-loading" 
+                                data-i18n="REQUESTS_LOADING" 
+                                class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                正在載入請求...
+                            </div>
+                            <div id="reimbursement-requests-empty" 
+                                class="text-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 p-4 rounded-lg" 
+                                style="display: none;">
+                                <p data-i18n="REIMBURSEMENT_NO_PENDING" class="font-semibold">
+                                    太棒了！目前沒有待審核的報銷申請。
+                                </p>
+                            </div>
+                            <ul id="pending-reimbursement-list" class="space-y-3"></ul>
+                        </div>
+                    </div>
                     <div class="card p-6 mt-6">
                         <h2 data-i18n="ADD_LOCATION_TITLE" 
                             class="text-xl font-bold text-gray-800 dark:text-white mb-2">
@@ -1285,7 +1594,7 @@
             </div>
             <footer class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
                 <p>
-                    <span data-i18n="APP_TITLE">出勤管家</span> v4.3.0 |
+                    <span data-i18n="APP_TITLE">出勤管家</span> v4.3.1 |
                     <span class="text-gray-400 dark:text-gray-500">
                     <a data-i18n="FOOTER_CREDITS" href="https://github.com/0rigind1865-bit/Attendance-System"
                         class="hover:underline hover:text-indigo-600 dark:hover:text-indigo-400">
