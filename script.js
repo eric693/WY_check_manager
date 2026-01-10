@@ -1,5 +1,61 @@
 // 使用 CDN 或絕對路徑來載入 JSON 檔案
 // 注意：本檔案需要依賴 config.js，請確保它在腳本之前被載入。
+
+// ==================== 通用按鈕狀態管理 ====================
+
+/**
+ * 通用按鈕狀態控制（支援多種按鈕）
+ * @param {string} text - 按鈕文字
+ * @param {boolean} isLoading - 是否為載入中狀態
+ * @param {string} buttonId - 按鈕 ID（可選）
+ */
+function generalButtonState(text, isLoading, buttonId = null) {
+    // 如果沒有指定按鈕，嘗試從當前執行環境找到按鈕
+    let button = null;
+    
+    if (buttonId) {
+        button = document.getElementById(buttonId);
+    } else {
+        // 自動偵測當前活動的按鈕
+        button = document.activeElement;
+        if (!button || button.tagName !== 'BUTTON') {
+            // 回退方案：找最近點擊的送出按鈕
+            const buttons = [
+                'submit-advance-btn',
+                'submit-reimb-btn',
+                'submit-overtime-btn',
+                'submit-leave-btn'
+            ];
+            
+            for (const btnId of buttons) {
+                const btn = document.getElementById(btnId);
+                if (btn && !btn.disabled) {
+                    button = btn;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if (!button) {
+        console.warn('⚠️ 找不到目標按鈕');
+        return;
+    }
+    
+    // 設定按鈕狀態
+    button.textContent = text;
+    button.disabled = isLoading;
+    
+    if (isLoading) {
+        button.classList.add('loading');
+        button.style.opacity = '0.6';
+        button.style.cursor = 'not-allowed';
+    } else {
+        button.classList.remove('loading');
+        button.style.opacity = '1';
+        button.style.cursor = 'pointer';
+    }
+}
 // ========== 🇹🇼 國定假日資料庫 ==========
 const TAIWAN_HOLIDAYS = {
     '2025': [
