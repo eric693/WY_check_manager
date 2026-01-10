@@ -2154,7 +2154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     // UI切換邏輯
-    const switchTab = (tabId) => {
+    const switchTab = async (tabId) => {
         // 修改這一行，加入 'shift-view'
         const tabs = ['dashboard-view', 'monthly-view', 'location-view', 'shift-view', 
               'admin-view', 'overtime-view', 'leave-view', 'salary-view', 'expense-view']; // 👈 加入
@@ -2205,8 +2205,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             fetchAndRenderReviewRequests();
             loadPendingOvertimeRequests();
             loadPendingLeaveRequests();
-            loadPendingAdvanceRequests();        // 👈 新增
-            loadPendingReimbursementRequests();  // 👈 新增
+            await loadPendingAdvanceRequests();
+            await loadPendingReimbursementRequests();
             loadIPWhitelist();
             displayAdminAnnouncements();
             initAdminAnalysis();
