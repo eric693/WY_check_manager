@@ -5147,48 +5147,80 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==================== 💰 管理員審核費用申請功能 ====================
-// 在 expense.js 或 script.js 中加入以下程式碼
-
 /**
  * 載入待審核的預支申請
  */
+/**
+ * ✅ 載入待審核的預支申請（完全修正版）
+ */
 async function loadPendingAdvanceRequests() {
+    console.log('═══════════════════════════════════════');
+    console.log('📋 開始載入待審核預支申請');
+    console.log('═══════════════════════════════════════');
+    
     const loadingEl = document.getElementById('advance-requests-loading');
     const emptyEl = document.getElementById('advance-requests-empty');
     const listEl = document.getElementById('pending-advance-list');
     
+    // ⭐⭐⭐ 關鍵檢查：DOM 元素是否存在
+    if (!loadingEl || !emptyEl || !listEl) {
+        console.error('❌ 找不到必要的 DOM 元素');
+        console.log('   loadingEl:', loadingEl);
+        console.log('   emptyEl:', emptyEl);
+        console.log('   listEl:', listEl);
+        return;
+    }
+    
     try {
-        if (loadingEl) loadingEl.style.display = 'block';
-        if (emptyEl) emptyEl.style.display = 'none';
-        if (listEl) listEl.innerHTML = '';
+        loadingEl.style.display = 'block';
+        emptyEl.style.display = 'none';
+        listEl.innerHTML = '';
+        
+        console.log('📡 發送 API 請求...');
         
         const res = await callApifetch('getPendingAdvanceRequests');
         
-        if (loadingEl) loadingEl.style.display = 'none';
+        console.log('📤 收到 API 回應:', res);
+        console.log('   ok:', res.ok);
+        console.log('   records:', res.records);
+        
+        loadingEl.style.display = 'none';
         
         if (res.ok && res.records && res.records.length > 0) {
+            console.log('✅ 有', res.records.length, '筆待審核記錄');
             renderPendingAdvanceRequests(res.records);
         } else {
-            if (emptyEl) emptyEl.style.display = 'block';
+            console.log('ℹ️  沒有待審核記錄');
+            emptyEl.style.display = 'block';
         }
         
     } catch (error) {
-        console.error('載入預支申請失敗:', error);
+        console.error('❌ 載入預支申請失敗:', error);
         if (loadingEl) loadingEl.style.display = 'none';
         if (emptyEl) emptyEl.style.display = 'block';
     }
+    
+    console.log('═══════════════════════════════════════');
 }
-
 /**
- * 渲染待審核的預支申請
+ * ✅ 渲染待審核的預支申請（完全修正版）
  */
 function renderPendingAdvanceRequests(records) {
+    console.log('🎨 開始渲染預支申請');
+    console.log('   記錄數量:', records.length);
+    
     const listEl = document.getElementById('pending-advance-list');
-    if (!listEl) return;
+    
+    if (!listEl) {
+        console.error('❌ 找不到 pending-advance-list 元素');
+        return;
+    }
     
     listEl.innerHTML = '';
     
     records.forEach((record, index) => {
+        console.log(`   渲染第 ${index + 1} 筆:`, record.userName, 'NT$', record.amount);
+        
         const li = document.createElement('li');
         li.className = 'p-4 bg-gray-50 dark:bg-gray-700 rounded-lg';
         
@@ -5258,6 +5290,8 @@ function renderPendingAdvanceRequests(records) {
         
         listEl.appendChild(li);
     });
+    
+    console.log('✅ 渲染完成');
 }
 
 /**
