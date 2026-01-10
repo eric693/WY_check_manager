@@ -629,36 +629,6 @@ async function handleOvertimeReview(button, action) {
 }
 
 /**
- * 控制按鈕的載入狀態
- * @param {HTMLElement} button - 按鈕元素
- * @param {string} state - 'processing' 或 'idle'
- * @param {string} loadingText - 處理中顯示的文字
- */
-function generalButtonState(button, state, loadingText = '處理中...') {
-    if (!button) return;
-    const loadingClasses = 'opacity-50 cursor-not-allowed';
-
-    if (state === 'processing') {
-        // 進入處理中狀態
-        button.dataset.originalText = button.textContent;
-        button.dataset.loadingClasses = loadingClasses;
-        button.disabled = true;
-        button.textContent = loadingText;
-        button.classList.add(...loadingClasses.split(' '));
-    } else {
-        // 恢復到原始狀態
-        if (button.dataset.loadingClasses) {
-            button.classList.remove(...button.dataset.loadingClasses.split(' '));
-        }
-        button.disabled = false;
-        if (button.dataset.originalText) {
-            button.textContent = button.dataset.originalText;
-            delete button.dataset.originalText;
-        }
-    }
-}
-
-/**
  * ⭐ 快速申請加班（從每日記錄觸發）
  * @param {string} date - 加班日期 (YYYY-MM-DD)
  * @param {string} startTime - 開始時間 (HH:mm)

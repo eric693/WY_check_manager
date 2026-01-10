@@ -3,57 +3,27 @@
 
 // ==================== 通用按鈕狀態管理 ====================
 
-/**
- * 通用按鈕狀態控制（支援多種按鈕）
- * @param {string} text - 按鈕文字
- * @param {boolean} isLoading - 是否為載入中狀態
- * @param {string} buttonId - 按鈕 ID（可選）
- */
-function generalButtonState(text, isLoading, buttonId = null) {
-    // 如果沒有指定按鈕，嘗試從當前執行環境找到按鈕
-    let button = null;
-    
-    if (buttonId) {
-        button = document.getElementById(buttonId);
-    } else {
-        // 自動偵測當前活動的按鈕
-        button = document.activeElement;
-        if (!button || button.tagName !== 'BUTTON') {
-            // 回退方案：找最近點擊的送出按鈕
-            const buttons = [
-                'submit-advance-btn',
-                'submit-reimb-btn',
-                'submit-overtime-btn',
-                'submit-leave-btn'
-            ];
-            
-            for (const btnId of buttons) {
-                const btn = document.getElementById(btnId);
-                if (btn && !btn.disabled) {
-                    button = btn;
-                    break;
-                }
-            }
-        }
-    }
-    
-    if (!button) {
-        console.warn('⚠️ 找不到目標按鈕');
+function generalButtonState(button, state, loadingText = '處理中...') {
+    // ⭐ 加強檢查：確保 button 是有效的 DOM 元素
+    if (!button || !(button instanceof HTMLElement)) {
+        console.warn('⚠️ generalButtonState 收到無效的按鈕元素:', button);
         return;
     }
     
-    // 設定按鈕狀態
-    button.textContent = text;
-    button.disabled = isLoading;
-    
-    if (isLoading) {
-        button.classList.add('loading');
-        button.style.opacity = '0.6';
-        button.style.cursor = 'not-allowed';
+    const loadingClasses = 'opacity-50 cursor-not-allowed';
+
+    if (state === 'processing') {
+        button.dataset.originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = loadingText;
+        button.classList.add(...loadingClasses.split(' '));
     } else {
-        button.classList.remove('loading');
-        button.style.opacity = '1';
-        button.style.cursor = 'pointer';
+        button.classList.remove(...loadingClasses.split(' '));
+        button.disabled = false;
+        if (button.dataset.originalText) {
+            button.textContent = button.dataset.originalText;
+            delete button.dataset.originalText;
+        }
     }
 }
 // ========== 🇹🇼 國定假日資料庫 ==========
@@ -254,6 +224,53 @@ async function callApifetch(action, loadingId = "loading") {
     }
 }
 
+/**
+ * 支援 POST 的 API 呼叫函數
+ */
+async function callApiFetch(action, data = {}, method = 'GET') {
+    const token = localStorage.getItem("sessionToken");
+    const baseUrl = API_CONFIG.apiUrl;
+    
+    let url, options;
+    
+    if (method === 'POST') {
+        url = `${baseUrl}?action=${action}&token=${token}`;
+        options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        };
+    } else {
+        const params = new URLSearchParams({ ...data, token });
+        url = `${baseUrl}?action=${action}&${params.toString()}`;
+        options = {
+            method: 'GET'
+        };
+    }
+    
+    try {
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP 錯誤: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // 統一格式
+        if (result.success !== undefined && result.ok === undefined) {
+            result.ok = result.success;
+        }
+        
+        return result;
+        
+    } catch (error) {
+        console.error('API 呼叫失敗:', error);
+        throw error;
+    }
+}
 // ==================== 📊 管理員匯出所有員工報表功能 ====================
 
 /**
@@ -5239,20 +5256,3 @@ async function reviewReimbursementApplication(applicationId, index, action) {
         showNotification('操作失敗，請稍後再試', 'error');
     }
 }
-
-// ==================== 在 switchTab 函數中加入 ====================
-// 當切換到管理員頁面時，載入費用申請
-// 修改 script.js 中的 switchTab 函數，在 admin-view 區塊加入：
-
-/*
-if (tabId === 'admin-view') {
-    fetchAndRenderReviewRequests();
-    loadPendingOvertimeRequests();
-    loadPendingLeaveRequests();
-    loadPendingAdvanceRequests();        // 👈 新增
-    loadPendingReimbursementRequests();  // 👈 新增
-    displayAdminAnnouncements();
-    initAdminAnalysis();
-    loadAllUsers();
-}
-*/
