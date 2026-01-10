@@ -4398,176 +4398,170 @@ function initExpenseTab() {
 
 // ==================== 💰 預支申請功能 ====================
 
-/**
- * 提交預支申請
- */
 async function submitAdvanceApplication() {
-    const dateInput = document.getElementById('advance-date');
-    const amountInput = document.getElementById('advance-amount');
-    const purposeInput = document.getElementById('advance-purpose');
-    const submitBtn = document.getElementById('submit-advance-btn');
+    const date = document.getElementById('advance-date').value;
+    const amount = document.getElementById('advance-amount').value;
+    const purpose = document.getElementById('advance-purpose').value;
     
-    const date = dateInput?.value;
-    const amount = parseFloat(amountInput?.value || 0);
-    const purpose = purposeInput?.value.trim();
-    
-    // 驗證
-    if (!date) {
-        showNotification('請選擇申請日期', 'error');
+    // ⭐ 加強驗證
+    if (!date || !amount || !purpose) {
+        showAlert(i18n[currentLang].alerts.fillAllFields, 'error');
         return;
     }
     
-    if (amount <= 0) {
-        showNotification('請輸入有效的申請金額', 'error');
+    if (parseFloat(amount) <= 0) {
+        showAlert('預支金額必須大於 0', 'error');
         return;
     }
     
-    if (!purpose || purpose.length < 5) {
-        showNotification('請填寫申請用途（至少 5 個字）', 'error');
+    if (purpose.trim().length < 2) {
+        showAlert('申請用途至少需要 2 個字', 'error');
         return;
     }
     
-    const loadingText = t('LOADING') || '提交中...';
-    
-    if (submitBtn) {
-        generalButtonState(submitBtn, 'processing', loadingText);
-    }
+    generalButtonState('送出中...', true);
     
     try {
-        const userId = localStorage.getItem('sessionUserId');
+        console.log('📡 送出預支申請:', { date, amount, purpose }); // ⭐ 除錯用
         
-        const res = await callApifetch(
-            `submitAdvanceApplication&userId=${userId}&date=${date}&amount=${amount}&purpose=${encodeURIComponent(purpose)}`
-        );
+        const response = await callApiFetch('submitAdvanceApplication', {
+            date: date,
+            amount: amount,
+            purpose: purpose
+        }, 'POST');
         
-        if (res.ok) {
-            showNotification('預支申請已送出，等待主管審核', 'success');
+        console.log('📤 API 回應:', response); // ⭐ 除錯用
+        
+        if (response.ok) {
+            showAlert(response.msg || '預支申請已送出', 'success');
             
             // 清空表單
-            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-            if (amountInput) amountInput.value = '';
-            if (purposeInput) purposeInput.value = '';
+            document.getElementById('advance-date').value = '';
+            document.getElementById('advance-amount').value = '';
+            document.getElementById('advance-purpose').value = '';
             
             // 重新載入記錄
-            loadExpenseRecords();
-            
+            loadAdvanceRecords();
         } else {
-            showNotification(res.msg || '提交失敗', 'error');
+            showAlert(response.msg || '送出失敗', 'error');
         }
-        
     } catch (error) {
-        console.error('提交預支申請失敗:', error);
-        showNotification('提交失敗，請稍後再試', 'error');
-        
+        console.error('❌ 預支申請錯誤:', error);
+        showAlert('系統錯誤：' + error.message, 'error');
     } finally {
-        if (submitBtn) {
-            generalButtonState(submitBtn, 'idle');
-        }
+        generalButtonState('提交預支申請', false);
     }
 }
 
 // ==================== 📄 報銷申請功能 ====================
 
-/**
- * 提交報銷申請
- */
 async function submitReimbursementApplication() {
-    const fileInput = document.getElementById('invoice-upload');
-    const dateInput = document.getElementById('expense-date');
-    const summaryInput = document.getElementById('expense-summary');
-    const amountInput = document.getElementById('expense-amount');
-    const invoiceNumberInput = document.getElementById('invoice-number');
-    const noteInput = document.getElementById('expense-note');
-    const submitBtn = document.getElementById('submit-reimbursement-btn');
+    const date = document.getElementById('reimb-date').value;
+    const summary = document.getElementById('reimb-summary').value;
+    const amount = document.getElementById('reimb-amount').value;
+    const invoiceNumber = document.getElementById('reimb-invoice-number').value;
+    const note = document.getElementById('reimb-note').value;
+    const fileInput = document.getElementById('reimb-invoice-upload');
     
-    const file = fileInput?.files[0];
-    const date = dateInput?.value;
-    const summary = summaryInput?.value.trim();
-    const amount = parseFloat(amountInput?.value || 0);
-    const invoiceNumber = invoiceNumberInput?.value.trim();
-    const note = noteInput?.value.trim();
-    
-    // 驗證
-    if (!file) {
-        showNotification('請上傳發票照片', 'error');
+    if (!date || !summary || !amount || !fileInput.files[0]) {
+        showAlert(i18n[currentLang].alerts.fillAllFields, 'error');
         return;
     }
     
-    if (!date) {
-        showNotification('請選擇費用日期', 'error');
+    if (parseFloat(amount) <= 0) {
+        showAlert('報銷金額必須大於 0', 'error');
         return;
     }
     
-    if (!summary || summary.length < 2) {
-        showNotification('請填寫費用摘要（至少 2 個字）', 'error');
-        return;
-    }
+    const file = fileInput.files[0];
     
-    if (amount <= 0) {
-        showNotification('請輸入有效的報銷金額', 'error');
-        return;
-    }
+    // ⭐⭐⭐ 關鍵修正：壓縮圖片
+    const compressedBase64 = await compressImage(file, 1024, 0.7); // 最大寬度1024px，品質70%
     
-    const loadingText = t('LOADING') || '上傳中...';
+    const fileName = `invoice_${Date.now()}.jpg`;
     
-    if (submitBtn) {
-        generalButtonState(submitBtn, 'processing', loadingText);
-    }
+    generalButtonState('送出中...', true);
     
     try {
-        // 將圖片轉為 Base64
-        const base64Image = await fileToBase64(file);
-        
-        const userId = localStorage.getItem('sessionUserId');
-        
-        const data = {
-            userId: userId,
+        const response = await callApiFetch('submitReimbursement', {
             date: date,
             summary: summary,
             amount: amount,
             invoiceNumber: invoiceNumber,
             note: note,
-            invoiceImage: base64Image,
-            fileName: file.name
-        };
+            invoiceImage: compressedBase64, // ⭐ 使用壓縮後的圖片
+            fileName: fileName
+        }, 'POST');
         
-        const res = await callApifetch(
-            `submitReimbursement&data=${encodeURIComponent(JSON.stringify(data))}`
-        );
-        
-        if (res.ok) {
-            showNotification('報銷申請已送出，等待主管審核', 'success');
+        if (response.ok) {
+            showAlert(response.msg || '報銷申請已送出', 'success');
             
             // 清空表單
-            if (fileInput) fileInput.value = '';
-            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-            if (summaryInput) summaryInput.value = '';
-            if (amountInput) amountInput.value = '';
-            if (invoiceNumberInput) invoiceNumberInput.value = '';
-            if (noteInput) noteInput.value = '';
-            
-            // 隱藏預覽
-            const preview = document.getElementById('invoice-preview');
-            const fileNameEl = document.getElementById('invoice-file-name');
-            if (preview) preview.classList.add('hidden');
-            if (fileNameEl) fileNameEl.textContent = '尚未選擇檔案';
+            document.getElementById('reimb-date').value = '';
+            document.getElementById('reimb-summary').value = '';
+            document.getElementById('reimb-amount').value = '';
+            document.getElementById('reimb-invoice-number').value = '';
+            document.getElementById('reimb-note').value = '';
+            fileInput.value = '';
+            document.getElementById('invoice-preview').style.display = 'none';
             
             // 重新載入記錄
-            loadExpenseRecords();
-            
+            loadReimbursementRecords();
         } else {
-            showNotification(res.msg || '提交失敗', 'error');
+            showAlert(response.msg || '送出失敗', 'error');
         }
-        
     } catch (error) {
-        console.error('提交報銷申請失敗:', error);
-        showNotification('提交失敗，請稍後再試', 'error');
-        
+        console.error('報銷申請錯誤:', error);
+        showAlert('系統錯誤，請稍後再試', 'error');
     } finally {
-        if (submitBtn) {
-            generalButtonState(submitBtn, 'idle');
-        }
+        generalButtonState('提交報銷申請', false);
     }
+}
+
+/**
+ * ⭐ 新增：圖片壓縮函數
+ */
+async function compressImage(file, maxWidth = 1024, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const img = new Image();
+            
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // 計算縮放比例
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // 轉換為 Base64（JPEG 格式，品質 70%）
+                const compressedBase64 = canvas.toDataURL('image/jpeg', quality).split(',')[1];
+                
+                console.log('✅ 圖片壓縮完成');
+                console.log(`   原始大小: ${(file.size / 1024).toFixed(2)} KB`);
+                console.log(`   壓縮後大小: ${(compressedBase64.length * 0.75 / 1024).toFixed(2)} KB`);
+                
+                resolve(compressedBase64);
+            };
+            
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
 
 /**
