@@ -1,6 +1,58 @@
 // 使用 CDN 或絕對路徑來載入 JSON 檔案
 // 注意：本檔案需要依賴 config.js，請確保它在腳本之前被載入。
+// ========== 🇹🇼 國定假日資料庫 ==========
+const TAIWAN_HOLIDAYS = {
+    '2025': [
+        { date: '2025-01-01', name: '中華民國開國紀念日' },
+        { date: '2025-01-27', name: '農曆除夕前一日' },
+        { date: '2025-01-28', name: '農曆除夕' },
+        { date: '2025-01-29', name: '春節初一' },
+        { date: '2025-01-30', name: '春節初二' },
+        { date: '2025-01-31', name: '春節初三' },
+        { date: '2025-02-28', name: '和平紀念日' },
+        { date: '2025-04-03', name: '兒童節前一日' },
+        { date: '2025-04-04', name: '兒童節、清明節' },
+        { date: '2025-05-01', name: '勞動節' },
+        { date: '2025-05-31', name: '端午節' },
+        { date: '2025-09-28', name: '教師節' },
+        { date: '2025-10-06', name: '中秋節' },
+        { date: '2025-10-10', name: '國慶日' },
+        { date: '2025-10-25', name: '光復節' },
+        { date: '2025-12-25', name: '行憲紀念日' }
+    ],
+    '2026': [
+        { date: '2026-01-01', name: '中華民國開國紀念日' },
+        { date: '2026-02-16', name: '農曆除夕前一日' },
+        { date: '2026-02-17', name: '農曆除夕' },
+        { date: '2026-02-18', name: '春節初一' },
+        { date: '2026-02-19', name: '春節初二' },
+        { date: '2026-02-20', name: '春節初三' },
+        { date: '2026-02-28', name: '和平紀念日' },
+        { date: '2026-04-03', name: '兒童節' },
+        { date: '2026-04-04', name: '清明節' },
+        { date: '2026-05-01', name: '勞動節' },
+        { date: '2026-06-19', name: '端午節' },
+        { date: '2026-09-28', name: '教師節' },
+        { date: '2026-09-25', name: '中秋節' },
+        { date: '2026-10-10', name: '國慶日' },
+        { date: '2026-10-25', name: '光復節' },
+        { date: '2026-12-25', name: '行憲紀念日' }
+    ]
+};
 
+/**
+ * 檢查某日是否為國定假日
+ * @param {string} dateKey - 日期 (YYYY-MM-DD)
+ * @returns {object|null} - 假日物件或 null
+ */
+function isNationalHoliday(dateKey) {
+    const year = dateKey.split('-')[0];
+    const holidays = TAIWAN_HOLIDAYS[year];
+    
+    if (!holidays) return null;
+    
+    return holidays.find(h => h.date === dateKey) || null;
+}
 let currentLang = localStorage.getItem("lang");
 let currentMonthDate = new Date();
 let translations = {};
@@ -1060,9 +1112,6 @@ async function submitAdjustPunch(date, type, note) {
     }
 }
 
-// 新增一個獨立的渲染函式，以便從快取或 API 回應中調用
-// 在 script.js 中找到 renderCalendarWithData 函數，並修改如下：
-
 function renderCalendarWithData(year, month, today, records, calendarGrid, monthTitle) {
     calendarGrid.innerHTML = '';
     monthTitle.textContent = t("MONTH_YEAR_TEMPLATE", {
@@ -1082,20 +1131,19 @@ function renderCalendarWithData(year, month, today, records, calendarGrid, month
     for (let i = 1; i <= daysInMonth; i++) {
         const dayCell = document.createElement('div');
         const cellDate = new Date(year, month, i);
-        dayCell.textContent = i;
         let dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         let dateClass = 'normal-day';
         
         const todayRecords = records.filter(r => r.date === dateKey);
         
-        // ✅ 移除：不再添加 emoji 圖示
-        // const statusIcons = [];
+        // ⭐⭐⭐ 新增：檢查是否為國定假日
+        const holiday = isNationalHoliday(dateKey);
         
         if (todayRecords.length > 0) {
             const record = todayRecords[0];
             const reason = record.reason;
             
-            // 👉 判斷打卡狀態
+            // 判斷打卡狀態
             switch (reason) {
                 case "STATUS_PUNCH_IN_MISSING":
                 case "STATUS_PUNCH_OUT_MISSING":
@@ -1111,7 +1159,6 @@ function renderCalendarWithData(year, month, today, records, calendarGrid, month
                     dateClass = 'approved-virtual';
                     break;
                 case "STATUS_NO_RECORD":
-                    // 如果有加班或請假，則顯示為特殊狀態
                     if (record.overtime || record.leave) {
                         dateClass = 'day-off';
                     }
@@ -1122,29 +1169,6 @@ function renderCalendarWithData(year, month, today, records, calendarGrid, month
                     }
                     break;
             }
-            
-            // ✅ 移除：不再添加加班和請假的 emoji
-            /*
-            // 👉 如果有加班記錄，加上特殊標記
-            if (record.overtime) {
-                statusIcons.push('⏰');
-            }
-            
-            // 👉 如果有請假記錄，加上特殊標記
-            if (record.leave) {
-                const leaveStatus = record.leave.status;
-                
-                // 根據請假狀態設定不同圖示
-                if (leaveStatus === 'APPROVED') {
-                    statusIcons.push('🏖️');
-                    dateClass = 'leave-day'; // 新的 CSS 類別
-                } else if (leaveStatus === 'PENDING') {
-                    statusIcons.push('⏳');
-                } else if (leaveStatus === 'REJECTED') {
-                    statusIcons.push('❌');
-                }
-            }
-            */
         }
         
         const isToday = (year === today.getFullYear() && month === today.getMonth() && i === today.getDate());
@@ -1157,20 +1181,18 @@ function renderCalendarWithData(year, month, today, records, calendarGrid, month
             dayCell.classList.add(dateClass);
         }
         
-        // ✅ 移除：不再顯示 emoji 圖示
-        /*
-        // 👉 將日期和圖示組合顯示
-        if (statusIcons.length > 0) {
+        // ⭐⭐⭐ 新增：如果是國定假日，顯示文字標示
+        if (holiday) {
+            dayCell.classList.add('holiday-day');
             dayCell.innerHTML = `
                 <div class="day-cell-content">
                     <span class="day-number">${i}</span>
-                    <div class="status-icons">
-                        ${statusIcons.map(icon => `<span class="status-icon">${icon}</span>`).join('')}
-                    </div>
+                    <span class="holiday-label">${holiday.name}</span>
                 </div>
             `;
+        } else {
+            dayCell.textContent = i;
         }
-        */
         
         dayCell.classList.add('day-cell');
         dayCell.dataset.date = dateKey;
@@ -1178,7 +1200,6 @@ function renderCalendarWithData(year, month, today, records, calendarGrid, month
         calendarGrid.appendChild(dayCell);
     }
 }
-
 /**
  * ✅ 渲染每日打卡記錄（改進版 - 請假資訊顯示在打卡記錄下方）
  * 

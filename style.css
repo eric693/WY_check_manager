@@ -681,3 +681,54 @@ html.dark .day-cell.leave-day.abnormal-day {
     background: linear-gradient(135deg, #991b1b 0%, #1e40af 100%);
     border: 2px dashed #ef4444;
 }
+
+/* ======================================= */
+/* 國定假日樣式 (National Holiday Styles) */
+/* ======================================= */
+
+/* 亮色模式 - 國定假日 */
+.day-cell.holiday-day {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde047 100%);
+    color: #713f12;
+    border: 2px solid #ca8a04;
+    font-weight: 600;
+}
+
+/* 暗黑模式 - 國定假日 */
+html.dark .day-cell.holiday-day {
+    background: linear-gradient(135deg, #713f12 0%, #854d0e 100%);
+    color: #fef3c7;
+    border: 2px solid #ca8a04;
+}
+
+/* 假日名稱標籤 */
+.holiday-label {
+    display: block;
+    font-size: 0.625rem;
+    line-height: 1.2;
+    margin-top: 2px;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* 響應式調整 */
+@media (max-width: 640px) {
+    .holiday-label {
+        font-size: 0.5rem;
+    }
+    
+    .day-cell.holiday-day .day-number {
+        font-size: 0.75rem;
+    }
+}
+
+/* 假日且打卡異常的日期 */
+.day-cell.holiday-day.abnormal-day {
+    background: linear-gradient(135deg, #fecaca 0%, #fde047 100%);
+    border: 2px dashed #ef4444;
+}
+
+html.dark .day-cell.holiday-day.abnormal-day {
+    background: linear-gradient(135deg, #991b1b 0%, #854d0e 100%);
+    border: 2px dashed #ef4444;
+}
