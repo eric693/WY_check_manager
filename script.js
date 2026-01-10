@@ -4476,37 +4476,43 @@ async function submitAdvanceApplication() {
     const amount = document.getElementById('advance-amount').value;
     const purpose = document.getElementById('advance-purpose').value;
     
-    // ⭐ 加強驗證
+    // ⭐ 驗證
     if (!date || !amount || !purpose) {
-        showAlert(i18n[currentLang].alerts.fillAllFields, 'error');
+        showNotification('請填寫所有欄位', 'error');  // ✅ 改用 showNotification
         return;
     }
     
     if (parseFloat(amount) <= 0) {
-        showAlert('預支金額必須大於 0', 'error');
+        showNotification('預支金額必須大於 0', 'error');
         return;
     }
     
     if (purpose.trim().length < 2) {
-        showAlert('申請用途至少需要 2 個字', 'error');
+        showNotification('申請用途至少需要 2 個字', 'error');
         return;
     }
     
-    generalButtonState('送出中...', true);
+    // ⭐ 取得按鈕元素
+    const submitBtn = document.getElementById('submit-advance-btn');
+    if (!submitBtn) {
+        console.error('找不到預支申請按鈕');
+        return;
+    }
+    
+    const loadingText = t('LOADING') || '送出中...';
+    
+    // ✅ 正確呼叫
+    generalButtonState(submitBtn, 'processing', loadingText);
     
     try {
-        console.log('📡 送出預支申請:', { date, amount, purpose }); // ⭐ 除錯用
-        
         const response = await callApiFetch('submitAdvanceApplication', {
             date: date,
             amount: amount,
             purpose: purpose
         }, 'POST');
         
-        console.log('📤 API 回應:', response); // ⭐ 除錯用
-        
         if (response.ok) {
-            showAlert(response.msg || '預支申請已送出', 'success');
+            showNotification(response.msg || '預支申請已送出', 'success');
             
             // 清空表單
             document.getElementById('advance-date').value = '';
@@ -4516,16 +4522,16 @@ async function submitAdvanceApplication() {
             // 重新載入記錄
             loadAdvanceRecords();
         } else {
-            showAlert(response.msg || '送出失敗', 'error');
+            showNotification(response.msg || '送出失敗', 'error');
         }
     } catch (error) {
-        console.error('❌ 預支申請錯誤:', error);
-        showAlert('系統錯誤：' + error.message, 'error');
+        console.error('預支申請錯誤:', error);
+        showNotification('系統錯誤，請稍後再試', 'error');
     } finally {
-        generalButtonState('提交預支申請', false);
+        // ✅ 恢復按鈕狀態
+        generalButtonState(submitBtn, 'idle');
     }
 }
-
 // ==================== 📄 報銷申請功能 ====================
 
 async function submitReimbursementApplication() {
@@ -4537,37 +4543,45 @@ async function submitReimbursementApplication() {
     const fileInput = document.getElementById('reimb-invoice-upload');
     
     if (!date || !summary || !amount || !fileInput.files[0]) {
-        showAlert(i18n[currentLang].alerts.fillAllFields, 'error');
+        showNotification('請填寫所有欄位並上傳發票', 'error');
         return;
     }
     
     if (parseFloat(amount) <= 0) {
-        showAlert('報銷金額必須大於 0', 'error');
+        showNotification('報銷金額必須大於 0', 'error');
         return;
     }
     
     const file = fileInput.files[0];
     
-    // ⭐⭐⭐ 關鍵修正：壓縮圖片
-    const compressedBase64 = await compressImage(file, 1024, 0.7); // 最大寬度1024px，品質70%
+    // ⭐ 取得按鈕元素
+    const submitBtn = document.getElementById('submit-reimbursement-btn');
+    if (!submitBtn) {
+        console.error('找不到報銷申請按鈕');
+        return;
+    }
     
-    const fileName = `invoice_${Date.now()}.jpg`;
+    const loadingText = t('LOADING') || '送出中...';
     
-    generalButtonState('送出中...', true);
+    // ✅ 正確呼叫
+    generalButtonState(submitBtn, 'processing', loadingText);
     
     try {
+        const compressedBase64 = await compressImage(file, 1024, 0.7);
+        const fileName = `invoice_${Date.now()}.jpg`;
+        
         const response = await callApiFetch('submitReimbursement', {
             date: date,
             summary: summary,
             amount: amount,
             invoiceNumber: invoiceNumber,
             note: note,
-            invoiceImage: compressedBase64, // ⭐ 使用壓縮後的圖片
+            invoiceImage: compressedBase64,
             fileName: fileName
         }, 'POST');
         
         if (response.ok) {
-            showAlert(response.msg || '報銷申請已送出', 'success');
+            showNotification(response.msg || '報銷申請已送出', 'success');
             
             // 清空表單
             document.getElementById('reimb-date').value = '';
@@ -4578,19 +4592,17 @@ async function submitReimbursementApplication() {
             fileInput.value = '';
             document.getElementById('invoice-preview').style.display = 'none';
             
-            // 重新載入記錄
             loadReimbursementRecords();
         } else {
-            showAlert(response.msg || '送出失敗', 'error');
+            showNotification(response.msg || '送出失敗', 'error');
         }
     } catch (error) {
         console.error('報銷申請錯誤:', error);
-        showAlert('系統錯誤，請稍後再試', 'error');
+        showNotification('系統錯誤，請稍後再試', 'error');
     } finally {
-        generalButtonState('提交報銷申請', false);
+        generalButtonState(submitBtn, 'idle');
     }
 }
-
 /**
  * ⭐ 新增：圖片壓縮函數
  */
