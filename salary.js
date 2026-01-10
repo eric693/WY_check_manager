@@ -511,8 +511,8 @@ function displayEmployeeSalary(data) {
     }
     
     // ⭐⭐⭐ 在加班費上方加入工時統計資訊
-    const totalWorkHours = parseFloat(data['工作時數']) || 0;
-    const totalOvertimeHours = parseFloat(data['總加班時數']) || 0;
+    const totalWorkHoursFormatted = totalWorkHours.toFixed(1);
+    const totalOvertimeHoursFormatted = totalOvertimeHours.toFixed(1);
     // ✅ 強制取整數
     const totalWorkHoursInt = Math.floor(totalWorkHours);
     const totalOvertimeHoursInt = Math.floor(totalOvertimeHours);
@@ -536,7 +536,7 @@ function displayEmployeeSalary(data) {
                 summaryHTML += `
                     <div class="flex justify-between text-sm mb-1">
                         <span class="text-blue-200">打卡工作時數：</span>
-                        <span class="font-mono text-blue-100">${Math.floor(totalWorkHours)}h</span>
+                        <span class="font-mono text-blue-100">${totalWorkHoursFormatted}h</span>
                     </div>
                 `;
             }
@@ -545,11 +545,14 @@ function displayEmployeeSalary(data) {
                 summaryHTML += `
                     <div class="flex justify-between text-sm">
                         <span class="text-orange-200">加班時數：</span>
-                        <span class="font-mono text-orange-100">${totalOvertimeHours.toFixed(1)}h</span>
+                        <span class="font-mono text-orange-100">${totalOvertimeHoursFormatted}h</span>
                     </div>
                 `;
             }
             
+            if (hourlyInfo) {
+                hourlyInfo.textContent = `時薪 $${hourlyRate} × ${totalWorkHoursFormatted}h`;
+            }
             workHoursSummary.innerHTML = summaryHTML;
             
             // 插入到平日加班費之前
@@ -957,7 +960,7 @@ function displaySalaryCalculation(data, container) {
     const weekdayOvertimePay = parseFloat(data.weekdayOvertimePay) || 0;
     const restdayOvertimePay = parseFloat(data.restdayOvertimePay) || 0;
     const holidayOvertimePay = parseFloat(data.holidayOvertimePay) || 0;
-    const totalOvertimeHours = parseFloat(data.totalOvertimeHours) || 0;
+    const totalOvertimeHours = parseFloat(data.totalOvertimeHours || 0).toFixed(1);
     
     container.innerHTML = `
         <div class="calculation-card">
@@ -1453,13 +1456,12 @@ function displayWorkHoursFromCalculation(data) {
     workHoursCard.id = 'work-hours-card';
     workHoursCard.className = 'feature-box bg-purple-900/20 border-purple-700 mb-4';
     
-    // ⭐⭐⭐ 修正：保留小數位數
     const totalWorkHours = parseFloat(data.totalWorkHours || 0).toFixed(1);
     const hourlyRate = data.hourlyRate || 0;
     const baseSalary = data.baseSalary || 0;
     
     workHoursCard.innerHTML = `
-      <h4 class="font-semibold mb-3 text-purple-400">本月工作時數統計</h4>
+      <h4 class="font-semibold mb-3 text-purple-400">⏰ 本月工作時數統計</h4>
       
       <div class="grid grid-cols-3 gap-4 mb-4">
         <div class="text-center p-3 bg-purple-800/20 rounded-lg">
