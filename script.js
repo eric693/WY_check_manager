@@ -2365,48 +2365,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     
     /* ===== 打卡功能 ===== */
-    function generalButtonState(button, state, loadingText = '處理中...') {
-        if (!button) return;
-        const loadingClasses = 'opacity-50 cursor-not-allowed';
+    // function generalButtonState(button, state, loadingText = '處理中...') {
+    //     if (!button) return;
+    //     const loadingClasses = 'opacity-50 cursor-not-allowed';
 
-        if (state === 'processing') {
-            // --- 進入處理中狀態 ---
+    //     if (state === 'processing') {
+    //         // --- 進入處理中狀態 ---
             
-            // 1. 儲存原始文本 (用於恢復)
-            button.dataset.originalText = button.textContent;
+    //         // 1. 儲存原始文本 (用於恢復)
+    //         button.dataset.originalText = button.textContent;
             
-            // 2. 儲存原始類別 (用於恢復樣式)
-            // 這是為了在恢復時移除我們為了禁用而添加的類別
-            button.dataset.loadingClasses = 'opacity-50 cursor-not-allowed';
+    //         // 2. 儲存原始類別 (用於恢復樣式)
+    //         // 這是為了在恢復時移除我們為了禁用而添加的類別
+    //         button.dataset.loadingClasses = 'opacity-50 cursor-not-allowed';
 
-            // 3. 禁用並設置處理中文字
-            button.disabled = true;
-            button.textContent = loadingText; // 使用傳入的 loadingText
+    //         // 3. 禁用並設置處理中文字
+    //         button.disabled = true;
+    //         button.textContent = loadingText; // 使用傳入的 loadingText
             
-            // 4. 添加視覺反饋 (禁用時的樣式)
-            button.classList.add(...loadingClasses.split(' '));
+    //         // 4. 添加視覺反饋 (禁用時的樣式)
+    //         button.classList.add(...loadingClasses.split(' '));
             
-            // 可選：移除 hover 效果，防止滑鼠移動時顏色變化
-            // 假設您的按鈕有 hover:opacity-100 之類的類別，這裡需要調整
+    //         // 可選：移除 hover 效果，防止滑鼠移動時顏色變化
+    //         // 假設您的按鈕有 hover:opacity-100 之類的類別，這裡需要調整
             
-        } else {
-            // --- 恢復到原始狀態 ---
+    //     } else {
+    //         // --- 恢復到原始狀態 ---
             
-            // 1. 移除視覺反饋
-            if (button.dataset.loadingClasses) {
-                button.classList.remove(...button.dataset.loadingClasses.split(' '));
-            }
+    //         // 1. 移除視覺反饋
+    //         if (button.dataset.loadingClasses) {
+    //             button.classList.remove(...button.dataset.loadingClasses.split(' '));
+    //         }
 
-            // 2. 恢復禁用狀態
-            button.disabled = false;
+    //         // 2. 恢復禁用狀態
+    //         button.disabled = false;
             
-            // 3. 恢復原始文本
-            if (button.dataset.originalText) {
-                button.textContent = button.dataset.originalText;
-                delete button.dataset.originalText; // 清除儲存，讓它在下一次點擊時再次儲存
-            }
-        }
-    }
+    //         // 3. 恢復原始文本
+    //         if (button.dataset.originalText) {
+    //             button.textContent = button.dataset.originalText;
+    //             delete button.dataset.originalText; // 清除儲存，讓它在下一次點擊時再次儲存
+    //         }
+    //     }
+    // }
 
         /**
      * 輔助函數：計算時間差（分鐘）
