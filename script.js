@@ -4476,9 +4476,8 @@ async function submitAdvanceApplication() {
     const amount = document.getElementById('advance-amount').value;
     const purpose = document.getElementById('advance-purpose').value;
     
-    // ⭐ 驗證
     if (!date || !amount || !purpose) {
-        showNotification('請填寫所有欄位', 'error');  // ✅ 改用 showNotification
+        showNotification('請填寫所有欄位', 'error');
         return;
     }
     
@@ -4492,7 +4491,6 @@ async function submitAdvanceApplication() {
         return;
     }
     
-    // ⭐ 取得按鈕元素
     const submitBtn = document.getElementById('submit-advance-btn');
     if (!submitBtn) {
         console.error('找不到預支申請按鈕');
@@ -4500,16 +4498,13 @@ async function submitAdvanceApplication() {
     }
     
     const loadingText = t('LOADING') || '送出中...';
-    
-    // ✅ 正確呼叫
     generalButtonState(submitBtn, 'processing', loadingText);
     
     try {
-        const response = await callApiFetch('submitAdvanceApplication', {
-            date: date,
-            amount: amount,
-            purpose: purpose
-        }, 'POST');
+        // ⭐ 改用 GET 請求，資料放在 URL 參數
+        const response = await callApifetch(
+            `submitAdvanceApplication&date=${encodeURIComponent(date)}&amount=${encodeURIComponent(amount)}&purpose=${encodeURIComponent(purpose)}`
+        );
         
         if (response.ok) {
             showNotification(response.msg || '預支申請已送出', 'success');
@@ -4519,7 +4514,6 @@ async function submitAdvanceApplication() {
             document.getElementById('advance-amount').value = '';
             document.getElementById('advance-purpose').value = '';
             
-            // 重新載入記錄
             loadAdvanceRecords();
         } else {
             showNotification(response.msg || '送出失敗', 'error');
@@ -4528,7 +4522,6 @@ async function submitAdvanceApplication() {
         console.error('預支申請錯誤:', error);
         showNotification('系統錯誤，請稍後再試', 'error');
     } finally {
-        // ✅ 恢復按鈕狀態
         generalButtonState(submitBtn, 'idle');
     }
 }
