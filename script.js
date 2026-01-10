@@ -3813,19 +3813,19 @@ function renderUsersList(users) {
     users.forEach((user, index) => {
         const isCurrentUser = user.userId === currentUserId;
         const isAdmin = user.dept === '管理員';
+        const isDisabled = user.status === '停用'; // 👈 新增：檢查停用狀態
         
         const div = document.createElement('div');
         div.className = 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow';
         div.dataset.userId = user.userId;
         div.dataset.userName = user.name;
         div.dataset.userDept = user.dept || '';
-
         div.innerHTML = `
         <div class="flex items-start space-x-3">
             <!-- 頭像 -->
             <img src="${user.picture || 'https://via.placeholder.com/48'}" 
                 alt="${user.name}" 
-                class="w-12 h-12 flex-shrink-0 rounded-full border-2 ${isAdmin ? 'border-yellow-400' : 'border-gray-300'}">
+                class="w-12 h-12 flex-shrink-0 rounded-full border-2 ${isAdmin ? 'border-yellow-400' : 'border-gray-300'} ${isDisabled ? 'opacity-50 grayscale' : ''}">
             
             <!-- 用戶資訊與操作區 -->
             <div class="flex-1 min-w-0">
@@ -3833,6 +3833,7 @@ function renderUsersList(users) {
                 <div class="flex flex-wrap items-center gap-1 mb-1">
                     <p class="font-bold text-gray-800 dark:text-white truncate">${user.name}</p>
                     ${isCurrentUser ? '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full whitespace-nowrap">您</span>' : ''}
+                    ${isDisabled ? '<span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full whitespace-nowrap">已停用</span>' : ''}
                     ${isAdmin ? '<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full whitespace-nowrap">管理員</span>' : '<span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">員工</span>'}
                 </div>
                 
@@ -3844,12 +3845,26 @@ function renderUsersList(users) {
                 <!-- 操作按鈕 -->
                 ${!isCurrentUser ? `
                     <div class="flex flex-wrap gap-2">
-                        <!-- 新增：編輯姓名按鈕 -->
+                        <!-- 編輯姓名按鈕 -->
                         <button onclick="openEditNameDialog('${user.userId}', '${user.name}')"
                                 class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-md transition-colors">
                             ✏️ 編輯姓名
                         </button>
                         
+                        <!-- 停用/啟用按鈕 -->
+                        ${isDisabled ? `
+                            <button onclick="toggleUserStatus('${user.userId}', '${user.name}', 'enable')"
+                                    class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-md transition-colors">
+                                ✅ 啟用帳號
+                            </button>
+                        ` : `
+                            <button onclick="toggleUserStatus('${user.userId}', '${user.name}', 'disable')"
+                                    class="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold rounded-md transition-colors">
+                                ⛔ 停用帳號
+                            </button>
+                        `}
+                        
+                        <!-- 升級/降級按鈕 -->
                         ${isAdmin ? `
                             <button onclick="changeUserRole('${user.userId}', '${user.name}', 'employee')"
                                     class="flex-1 min-w-[120px] px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-md transition-colors">
@@ -3862,15 +3877,15 @@ function renderUsersList(users) {
                             </button>
                         `}
                         
+                        <!-- 刪除按鈕 -->
                         <button onclick="confirmDeleteUser('${user.userId}', '${user.name}')"
                                 class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-md transition-colors">
-                            刪除
+                            🗑️ 刪除
                         </button>
                     </div>
                 ` : `
                     <span class="text-xs text-gray-500 dark:text-gray-400">無法操作自己</span>
                 `}
-
             </div>
         </div>
         `;
@@ -4244,5 +4259,86 @@ async function deleteAnnouncement(id) {
     } catch (error) {
         console.error('刪除公告失敗:', error);
         showNotification('刪除失敗', 'error');
+    }
+}
+
+
+/**
+ * 確認刪除用戶
+ */
+function confirmDeleteUser(userId, userName) {
+    if (!confirm(`⚠️ 警告：確定要刪除用戶「${userName}」嗎？\n\n此操作無法復原！`)) {
+        return;
+    }
+    
+    if (!confirm(`再次確認：真的要刪除「${userName}」嗎？`)) {
+        return;
+    }
+    
+    deleteUser(userId, userName);
+}
+
+/**
+ * 刪除用戶
+ */
+async function deleteUser(userId, userName) {
+    try {
+        showNotification('刪除中...', 'warning');
+        
+        const res = await callApifetch(`deleteUser&userId=${encodeURIComponent(userId)}`);
+        
+        if (res.ok) {
+            showNotification(`已成功刪除「${userName}」`, 'success');
+            await loadAllUsers();
+        } else {
+            showNotification(res.msg || '刪除失敗', 'error');
+        }
+    } catch (error) {
+        console.error('刪除用戶失敗:', error);
+        showNotification('刪除失敗，請稍後再試', 'error');
+    }
+}
+
+/**
+ * 停用/啟用用戶帳號
+ */
+async function toggleUserStatus(userId, userName, action) {
+    const actionText = action === 'enable' ? '啟用' : '停用';
+    
+    if (!confirm(`確定要${actionText}「${userName}」的帳號嗎？`)) {
+        return;
+    }
+    
+    try {
+        showNotification('處理中...', 'info');
+        
+        const res = await callApifetch(
+            `toggleUserStatus&userId=${encodeURIComponent(userId)}&action=${action}`
+        );
+        
+        if (res.ok) {
+            showNotification(`已成功${actionText}「${userName}」`, 'success');
+            
+            // 重新載入列表
+            await loadAllUsers();
+            
+            // 如果停用的是當前用戶，強制登出
+            const currentUserId = localStorage.getItem('sessionUserId');
+            if (userId === currentUserId && action === 'disable') {
+                showNotification('您的帳號已被停用，即將登出...', 'warning');
+                setTimeout(() => {
+                    localStorage.removeItem('sessionToken');
+                    localStorage.removeItem('cachedUser');
+                    localStorage.removeItem('cacheTime');
+                    window.location.href = '/Allianz_check_manager';
+                }, 2000);
+            }
+        } else {
+            showNotification(res.msg || '操作失敗', 'error');
+        }
+        
+    } catch (error) {
+        console.error('停用/啟用帳號失敗:', error);
+        showNotification('操作失敗，請稍後再試', 'error');
     }
 }

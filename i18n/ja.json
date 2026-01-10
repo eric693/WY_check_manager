@@ -681,5 +681,10 @@
   "ADJUST_REASON_PLACEHOLDER": "修正理由を記入してください（例：打刻忘れ、システム障害など）",
   "ADJUST_REASON_REQUIRED": "修正理由を入力してください",
 
-  "STATS_OVERTIME_HOURS": "残業時間"
+  "STATS_OVERTIME_HOURS": "残業時間",
+
+  "BTN_DISABLE_ACCOUNT": "アカウントを無効化",
+  "BTN_ENABLE_ACCOUNT": "アカウントを有効化",
+  "ACCOUNT_DISABLED_SUCCESS": "アカウントが無効化されました",
+  "ACCOUNT_ENABLED_SUCCESS": "アカウントが有効化されました"
 }

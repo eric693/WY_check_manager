@@ -681,5 +681,10 @@
   "ADJUST_REASON_PLACEHOLDER": "Harap jelaskan alasan penyesuaian (misalnya: lupa absen, kesalahan sistem, dll.)",
   "ADJUST_REASON_REQUIRED": "Harap isi alasan penyesuaian",
 
-  "STATS_OVERTIME_HOURS": "Jam Lembur"
+  "STATS_OVERTIME_HOURS": "Jam Lembur",
+
+  "BTN_DISABLE_ACCOUNT": "Nonaktifkan Akun",
+  "BTN_ENABLE_ACCOUNT": "Aktifkan Akun",
+  "ACCOUNT_DISABLED_SUCCESS": "Akun telah dinonaktifkan",
+  "ACCOUNT_ENABLED_SUCCESS": "Akun telah diaktifkan"
 }

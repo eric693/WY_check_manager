@@ -728,5 +728,10 @@
   "ADJUST_REASON_REQUIRED": "Vui lòng nhập lý do điều chỉnh",
 
 
-  "STATS_OVERTIME_HOURS": "Giờ làm thêm"
+  "STATS_OVERTIME_HOURS": "Giờ làm thêm",
+
+  "BTN_DISABLE_ACCOUNT": "Vô hiệu hóa tài khoản",
+  "BTN_ENABLE_ACCOUNT": "Kích hoạt tài khoản",
+  "ACCOUNT_DISABLED_SUCCESS": "Tài khoản đã bị vô hiệu hóa",
+  "ACCOUNT_ENABLED_SUCCESS": "Tài khoản đã được kích hoạt"
 }

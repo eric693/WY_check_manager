@@ -718,5 +718,10 @@
   "ADJUST_REASON_REQUIRED": "請填寫補打卡理由",
 
 
-  "STATS_OVERTIME_HOURS": "加班時數"
+  "STATS_OVERTIME_HOURS": "加班時數",
+
+  "BTN_DISABLE_ACCOUNT": "停用帳號",
+  "BTN_ENABLE_ACCOUNT": "啟用帳號",
+  "ACCOUNT_DISABLED_SUCCESS": "帳號已停用",
+  "ACCOUNT_ENABLED_SUCCESS": "帳號已啟用"
 }

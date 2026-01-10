@@ -681,5 +681,10 @@
   "ADJUST_REASON_PLACEHOLDER": "조정 사유를 입력해 주세요 (예: 체크인 누락, 시스템 오류 등)",
   "ADJUST_REASON_REQUIRED": "조정 사유를 입력해 주세요",
 
-  "STATS_OVERTIME_HOURS": "초과 근무 시간"
+  "STATS_OVERTIME_HOURS": "초과 근무 시간",
+
+  "BTN_DISABLE_ACCOUNT": "계정 비활성화",
+  "BTN_ENABLE_ACCOUNT": "계정 활성화",
+  "ACCOUNT_DISABLED_SUCCESS": "계정이 비활성화되었습니다",
+  "ACCOUNT_ENABLED_SUCCESS": "계정이 활성화되었습니다"
 }

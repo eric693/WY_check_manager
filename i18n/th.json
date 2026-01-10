@@ -730,6 +730,11 @@
     "ADJUST_REASON_PLACEHOLDER": "โปรดระบุเหตุผลในการปรับแก้ (เช่น ลืมบันทึกเวลา, ระบบขัดข้อง เป็นต้น)",
     "ADJUST_REASON_REQUIRED": "กรุณากรอกเหตุผลในการปรับแก้",
 
-    "STATS_OVERTIME_HOURS": "ชั่วโมงทำงานล่วงเวลา"
+    "STATS_OVERTIME_HOURS": "ชั่วโมงทำงานล่วงเวลา",
+
+    "BTN_DISABLE_ACCOUNT": "ปิดการใช้งานบัญชี",
+    "BTN_ENABLE_ACCOUNT": "เปิดการใช้งานบัญชี",
+    "ACCOUNT_DISABLED_SUCCESS": "ปิดการใช้งานบัญชีแล้ว",
+    "ACCOUNT_ENABLED_SUCCESS": "เปิดการใช้งานบัญชีแล้ว"
 }
   
