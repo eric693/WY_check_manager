@@ -2327,7 +2327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     punchInBtn.addEventListener('click', () => doPunch("上班"));
     punchOutBtn.addEventListener('click', () => doPunch("下班"));
 
-    // 處理補打卡表單
+    // 修正預設補打卡時間（8:30 和 17:30）
     abnormalList.addEventListener('click', (e) => {
         const button = e.target.closest('.adjust-btn');
         
@@ -2362,10 +2362,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <span class="text-red-500">*</span>
                         </label>
                         <textarea id="adjustReason" 
-                                  rows="3" 
-                                  required
-                                  placeholder="${t('ADJUST_REASON_PLACEHOLDER') || '請說明補打卡原因...'}"
-                                  class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                                rows="3" 
+                                required
+                                placeholder="${t('ADJUST_REASON_PLACEHOLDER') || '請說明補打卡原因...'}"
+                                class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
                     </div>
                     
                     <div class="grid grid-cols-2 gap-2">
@@ -2386,15 +2386,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             adjustmentFormContainer.innerHTML = formHtml;
             
+            // ⭐⭐⭐ 修正：預設時間改為 8:30 和 17:30
             const adjustDateTimeInput = document.getElementById("adjustDateTime");
-            const defaultTime = type === '上班' ? '09:00' : '18:00';
+            const defaultTime = type === '上班' ? '08:30' : '17:30';
             adjustDateTimeInput.value = `${date}T${defaultTime}`;
             
             // 👇 新增：平滑滾動到補打卡表單
             setTimeout(() => {
                 adjustmentFormContainer.scrollIntoView({ 
-                    behavior: 'smooth',  // 平滑滾動
-                    block: 'start'       // 滾動到元素頂部
+                    behavior: 'smooth',
+                    block: 'start'
                 });
                 
                 // 可選：讓理由輸入框自動聚焦
@@ -2402,7 +2403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (reasonInput) {
                     reasonInput.focus();
                 }
-            }, 100); // 稍微延遲，確保表單已渲染
+            }, 100);
             
             // 綁定取消按鈕
             document.getElementById('cancel-adjust-btn').addEventListener('click', () => {
@@ -2410,7 +2411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
     });
-    
+   
     function validateAdjustTime(value) {
         const selected = new Date(value);
         const now = new Date();
@@ -3620,8 +3621,8 @@ function resetBiometric() {
 }
 
 /**
-     * 執行打卡
-     */
+ * 執行打卡（修正版 - 8:30-17:30）
+ */
 async function doPunch(type) {
     const punchButtonId = type === '上班' ? 'punch-in-btn' : 'punch-out-btn';
     
@@ -3671,6 +3672,12 @@ async function doPunch(type) {
                         );
                     }
                 }
+            } else {
+                // ⭐⭐⭐ 新增：如果沒有排班，提示預設工作時間
+                showNotification(
+                    '今日無特殊排班，預設工作時間：08:30-17:30',
+                    'info'
+                );
             }
         } catch (error) {
             console.error('檢查排班失敗:', error);

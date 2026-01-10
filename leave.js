@@ -74,7 +74,6 @@ function bindLeaveEventListeners() {
     // ⭐ 標記為已綁定
     leaveEventsBound = true;
 }
-
 /**
  * 重置初始化狀態（用於手動刷新）
  */
@@ -94,7 +93,7 @@ async function refreshLeaveData() {
 }
 
 /**
- * ✅ 完全修正版：計算工作時數（09:00-18:00，扣除 12:00-13:00）
+ * ✅ 完全修正版：計算工作時數（08:30-17:30，扣除 12:00-13:00）
  */
 function calculateWorkHours(startTime, endTime) {
     if (!startTime || !endTime) {
@@ -121,9 +120,9 @@ function calculateWorkHours(startTime, endTime) {
         end: end.toISOString()
     });
     
-    // ⭐ 工作時間設定
-    const WORK_START_HOUR = 9;      // 上班 09:00
-    const WORK_END_HOUR = 18;       // 下班 18:00
+    // ⭐ 工作時間設定 (8:30-17:30)
+    const WORK_START_HOUR = 8.5;    // 上班 08:30
+    const WORK_END_HOUR = 17.5;     // 下班 17:30
     const LUNCH_START = 12;         // 午休開始 12:00
     const LUNCH_END = 13;           // 午休結束 13:00
     const DAILY_WORK_HOURS = 8;     // 每日工作時數（已扣午休）
@@ -179,13 +178,11 @@ function calculateWorkHours(startTime, endTime) {
         let totalWorkHours = 0;
         
         // 🔹 第一天：從請假開始到當天下班
-        // ⭐ 修正：限制開始時間不早於上班時間
         const firstDayStartHour = Math.max(
             start.getHours() + start.getMinutes() / 60,
             WORK_START_HOUR
         );
         
-        // ⭐ 修正：確保不晚於下班時間
         const firstDayEndHour = WORK_END_HOUR;
         
         let firstDayHours = Math.max(0, firstDayEndHour - firstDayStartHour);
@@ -215,11 +212,10 @@ function calculateWorkHours(startTime, endTime) {
         }
         
         // 🔹 最後一天：從上班到請假結束
-        // ⭐ 修正：限制結束時間不早於上班時間、不晚於下班時間
         const lastDayEndHour = Math.min(
             Math.max(
                 end.getHours() + end.getMinutes() / 60,
-                WORK_START_HOUR  // ⭐ 不早於上班時間
+                WORK_START_HOUR
             ),
             WORK_END_HOUR
         );
@@ -249,6 +245,7 @@ function calculateWorkHours(startTime, endTime) {
         return finalHours;
     }
 }
+
 /**
  * 更新工時預覽（即時顯示）
  */
@@ -336,8 +333,9 @@ function updateWorkHoursPreview() {
     }
 }
 
+
 /**
- * 快速選擇時段
+ * 快速選擇時段（8:30-17:30）
  */
 function quickSelectTimeRange(type) {
     console.log('🎯 快速選擇:', type);
@@ -349,13 +347,13 @@ function quickSelectTimeRange(type) {
     
     switch(type) {
         case '1h':
-            startTime = `${today}T09:00`;
-            endTime = `${today}T10:00`;
+            startTime = `${today}T08:30`;
+            endTime = `${today}T09:30`;
             break;
             
         case '2h':
-            startTime = `${today}T09:00`;
-            endTime = `${today}T11:00`;
+            startTime = `${today}T08:30`;
+            endTime = `${today}T10:30`;
             break;
             
         case '4h':
@@ -364,8 +362,8 @@ function quickSelectTimeRange(type) {
             break;
             
         case '8h':
-            startTime = `${today}T09:00`;
-            endTime = `${today}T18:00`;
+            startTime = `${today}T08:30`;
+            endTime = `${today}T17:30`;
             break;
             
         default:
