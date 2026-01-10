@@ -2207,6 +2207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadPendingLeaveRequests();
             loadPendingAdvanceRequests();        // 👈 新增
             loadPendingReimbursementRequests();  // 👈 新增
+            loadIPWhitelist();
             displayAdminAnnouncements();
             initAdminAnalysis();
             loadAllUsers();
@@ -3725,16 +3726,28 @@ function resetBiometric() {
 }
 
 /**
- * 執行打卡（修正版 - 8:30-17:30）
+ * 📍 取得客戶端公網 IP
+ */
+async function getPublicIP() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.error('取得 IP 失敗:', error);
+        return null;
+    }
+}
+/**
+ * 📍 修改：打卡函數（加入 IP 參數）
  */
 async function doPunch(type) {
     const punchButtonId = type === '上班' ? 'punch-in-btn' : 'punch-out-btn';
-    
     const button = document.getElementById(punchButtonId);
     const loadingText = t('LOADING') || '處理中...';
-
+    
     if (!button) return;
-
+    
     generalButtonState(button, 'processing', loadingText);
     
     // ==================== 上班打卡前檢查排班 ====================
@@ -3756,38 +3769,15 @@ async function doPunch(type) {
                     }) || `今日排班：${shift.shiftType} (${shift.startTime}-${shift.endTime})`,
                     'info'
                 );
-                
-                const now = new Date();
-                const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-                
-                if (shift.startTime) {
-                    const timeDiff = getTimeDifference(currentTime, shift.startTime);
-                    
-                    if (timeDiff < -30) {
-                        showNotification(
-                            t('EARLY_PUNCH_WARNING') || `注意：您的排班時間是 ${shift.startTime}，目前提前超過 30 分鐘打卡。`,
-                            'warning'
-                        );
-                    }
-                    else if (timeDiff > 30) {
-                        showNotification(
-                            t('LATE_PUNCH_WARNING') || `注意：您的排班時間是 ${shift.startTime}，目前已遲到超過 30 分鐘。`,
-                            'warning'
-                        );
-                    }
-                }
             } else {
-                // ⭐⭐⭐ 新增：如果沒有排班，提示預設工作時間
-                showNotification(
-                    '今日無特殊排班，預設工作時間：08:30-17:30',
-                    'info'
-                );
+                showNotification('今日無特殊排班，預設工作時間：08:30-17:30', 'info');
             }
         } catch (error) {
             console.error('檢查排班失敗:', error);
         }
     }
     
+    // ==================== GPS 定位 ====================
     if (!navigator.geolocation) {
         showNotification(t("ERROR_GEOLOCATION", { msg: "您的瀏覽器不支援地理位置功能。" }), "error");
         generalButtonState(button, 'idle');
@@ -3797,7 +3787,16 @@ async function doPunch(type) {
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        const action = `punch&type=${encodeURIComponent(type)}&lat=${lat}&lng=${lng}&note=${encodeURIComponent(navigator.userAgent)}`;
+        
+        // ⭐⭐⭐ 取得客戶端 IP
+        const clientIP = await getPublicIP();
+        
+        console.log('📍 定位資訊:');
+        console.log('   GPS:', lat, lng);
+        console.log('   IP:', clientIP);
+        
+        // ⭐⭐⭐ 打卡 API 加入 IP 參數
+        const action = `punch&type=${encodeURIComponent(type)}&lat=${lat}&lng=${lng}&note=${encodeURIComponent(navigator.userAgent)}&ip=${encodeURIComponent(clientIP || '')}`;
         
         try {
             const res = await callApifetch(action);
@@ -3819,6 +3818,101 @@ async function doPunch(type) {
         generalButtonState(button, 'idle');
     });
 }
+/**
+ * 執行打卡（修正版 - 8:30-17:30）
+ */
+// async function doPunch(type) {
+//     const punchButtonId = type === '上班' ? 'punch-in-btn' : 'punch-out-btn';
+    
+//     const button = document.getElementById(punchButtonId);
+//     const loadingText = t('LOADING') || '處理中...';
+
+//     if (!button) return;
+
+//     generalButtonState(button, 'processing', loadingText);
+    
+//     // ==================== 上班打卡前檢查排班 ====================
+//     if (type === '上班') {
+//         try {
+//             const userId = localStorage.getItem('sessionUserId');
+//             const today = new Date().toISOString().split('T')[0];
+            
+//             const shiftRes = await callApifetch(`getEmployeeShiftForDate&employeeId=${userId}&date=${today}`);
+            
+//             if (shiftRes.ok && shiftRes.hasShift) {
+//                 const shift = shiftRes.data;
+                
+//                 showNotification(
+//                     t('SHIFT_INFO_NOTIFICATION', {
+//                         shiftType: shift.shiftType,
+//                         startTime: shift.startTime,
+//                         endTime: shift.endTime
+//                     }) || `今日排班：${shift.shiftType} (${shift.startTime}-${shift.endTime})`,
+//                     'info'
+//                 );
+                
+//                 const now = new Date();
+//                 const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                
+//                 if (shift.startTime) {
+//                     const timeDiff = getTimeDifference(currentTime, shift.startTime);
+                    
+//                     if (timeDiff < -30) {
+//                         showNotification(
+//                             t('EARLY_PUNCH_WARNING') || `注意：您的排班時間是 ${shift.startTime}，目前提前超過 30 分鐘打卡。`,
+//                             'warning'
+//                         );
+//                     }
+//                     else if (timeDiff > 30) {
+//                         showNotification(
+//                             t('LATE_PUNCH_WARNING') || `注意：您的排班時間是 ${shift.startTime}，目前已遲到超過 30 分鐘。`,
+//                             'warning'
+//                         );
+//                     }
+//                 }
+//             } else {
+//                 // ⭐⭐⭐ 新增：如果沒有排班，提示預設工作時間
+//                 showNotification(
+//                     '今日無特殊排班，預設工作時間：08:30-17:30',
+//                     'info'
+//                 );
+//             }
+//         } catch (error) {
+//             console.error('檢查排班失敗:', error);
+//         }
+//     }
+    
+//     if (!navigator.geolocation) {
+//         showNotification(t("ERROR_GEOLOCATION", { msg: "您的瀏覽器不支援地理位置功能。" }), "error");
+//         generalButtonState(button, 'idle');
+//         return;
+//     }
+    
+//     navigator.geolocation.getCurrentPosition(async (pos) => {
+//         const lat = pos.coords.latitude;
+//         const lng = pos.coords.longitude;
+//         const action = `punch&type=${encodeURIComponent(type)}&lat=${lat}&lng=${lng}&note=${encodeURIComponent(navigator.userAgent)}`;
+        
+//         try {
+//             const res = await callApifetch(action);
+//             const msg = t(res.code || "UNKNOWN_ERROR", res.params || {});
+//             showNotification(msg, res.ok ? "success" : "error");
+            
+//             if (res.ok && type === '上班') {
+//                 clearShiftCache();
+//             }
+            
+//             generalButtonState(button, 'idle');
+//         } catch (err) {
+//             console.error(err);
+//             generalButtonState(button, 'idle');
+//         }
+        
+//     }, (err) => {
+//         showNotification(t("ERROR_GEOLOCATION", { msg: err.message }), "error");
+//         generalButtonState(button, 'idle');
+//     });
+// }
 
 /**
  * 輔助函數：計算時間差（分鐘）
@@ -5373,5 +5467,144 @@ async function reviewReimbursementApplication(applicationId, index, action) {
     } catch (error) {
         console.error('審核報銷申請失敗:', error);
         showNotification('操作失敗，請稍後再試', 'error');
+    }
+}
+
+// script.js - IP 白名單管理功能
+
+/**
+ * 新增 IP 白名單
+ */
+async function addIPToWhitelist() {
+    const ipRangeInput = document.getElementById('ip-range-input');
+    const descriptionInput = document.getElementById('ip-description-input');
+    const addBtn = document.getElementById('add-ip-btn');
+    
+    const ipRange = ipRangeInput.value.trim();
+    const description = descriptionInput.value.trim();
+    
+    if (!ipRange) {
+        showNotification('請輸入 IP 範圍', 'error');
+        return;
+    }
+    
+    if (addBtn) {
+        generalButtonState(addBtn, 'processing', '新增中...');
+    }
+    
+    try {
+        const res = await callApifetch(
+            `addIPToWhitelist&ipRange=${encodeURIComponent(ipRange)}&description=${encodeURIComponent(description)}`
+        );
+        
+        if (res.ok) {
+            showNotification('IP 白名單已新增', 'success');
+            
+            // 清空輸入
+            ipRangeInput.value = '';
+            descriptionInput.value = '';
+            
+            // 重新載入列表
+            await loadIPWhitelist();
+        } else {
+            showNotification(res.msg || '新增失敗', 'error');
+        }
+        
+    } catch (error) {
+        console.error('新增 IP 失敗:', error);
+        showNotification('新增失敗', 'error');
+        
+    } finally {
+        if (addBtn) {
+            generalButtonState(addBtn, 'idle');
+        }
+    }
+}
+
+/**
+ * 載入 IP 白名單
+ */
+async function loadIPWhitelist() {
+    const loadingEl = document.getElementById('ip-whitelist-loading');
+    const emptyEl = document.getElementById('ip-whitelist-empty');
+    const listEl = document.getElementById('ip-whitelist-list');
+    
+    try {
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (listEl) listEl.innerHTML = '';
+        
+        const res = await callApifetch('getIPWhitelist');
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        
+        if (res.ok && res.whitelist && res.whitelist.length > 0) {
+            renderIPWhitelist(res.whitelist);
+        } else {
+            if (emptyEl) emptyEl.style.display = 'block';
+        }
+        
+    } catch (error) {
+        console.error('載入 IP 白名單失敗:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'block';
+    }
+}
+
+/**
+ * 渲染 IP 白名單
+ */
+function renderIPWhitelist(whitelist) {
+    const listEl = document.getElementById('ip-whitelist-list');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    whitelist.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 flex justify-between items-center';
+        
+        li.innerHTML = `
+            <div class="flex-1">
+                <p class="font-semibold text-gray-800 dark:text-white">
+                    📍 ${item.ipRange}
+                </p>
+                ${item.description ? `
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        ${item.description}
+                    </p>
+                ` : ''}
+            </div>
+            <button onclick="deleteIPFromWhitelist(${item.rowNumber}, '${item.ipRange}')"
+                    class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded font-semibold">
+                🗑️ 刪除
+            </button>
+        `;
+        
+        listEl.appendChild(li);
+    });
+}
+
+/**
+ * 刪除 IP 白名單
+ */
+async function deleteIPFromWhitelist(rowNumber, ipRange) {
+    if (!confirm(`確定要刪除 IP「${ipRange}」嗎？`)) {
+        return;
+    }
+    
+    try {
+        const res = await callApifetch(`deleteIPFromWhitelist&rowNumber=${rowNumber}`);
+        
+        if (res.ok) {
+            showNotification('IP 白名單已刪除', 'success');
+            await loadIPWhitelist();
+        } else {
+            showNotification(res.msg || '刪除失敗', 'error');
+        }
+        
+    } catch (error) {
+        console.error('刪除 IP 失敗:', error);
+        showNotification('刪除失敗', 'error');
     }
 }

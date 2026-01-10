@@ -759,6 +759,17 @@
                                         <span data-i18n="SALARY_LEAVE_DEDUCT">請假扣款</span>
                                         <span id="detail-leave-deduction" class="font-mono">$0</span>
                                     </div>
+                                    <!-- ⭐ 新增：請假明細 -->
+                                    <div id="leave-deduction-details" class="ml-4 text-xs text-gray-400 space-y-1" style="display: none;">
+                                        <div class="flex justify-between">
+                                            <span>• 事假（扣全薪）</span>
+                                            <span id="personal-leave-days">0天 / $0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>• 病假（扣半薪）</span>
+                                            <span id="sick-leave-days">0天 / $0</span>
+                                        </div>
+                                    </div>
                                     <div class="flex justify-between">
                                         <span data-i18n="SALARY_OTHER_DEDUCT">其他扣款</span>
                                         <span id="detail-other-deductions" class="font-mono">$0</span>
