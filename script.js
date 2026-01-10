@@ -4472,14 +4472,21 @@ function initExpenseTab() {
 // ==================== 💰 預支申請功能 ====================
 
 /**
- * ✅ 提交預支申請（完全修正版）
+ * ✅ 提交預支申請（完全修正版 - 修正按鈕 ID）
  */
 async function submitAdvanceApplication() {
     console.log('═══════════════════════════════════════');
     console.log('📝 開始提交預支申請');
     console.log('═══════════════════════════════════════');
     
-    const submitBtn = document.querySelector('#advance-submit-btn');
+    // ⭐⭐⭐ 關鍵修正：改為正確的 ID
+    const submitBtn = document.getElementById('submit-advance-btn');  // 👈 改這裡
+    
+    if (!submitBtn) {
+      console.error('❌ 找不到提交按鈕！');
+      showNotification('系統錯誤：找不到提交按鈕', 'error');
+      return;
+    }
     
     // 防止重複提交
     if (submitBtn.disabled) {
@@ -4488,7 +4495,7 @@ async function submitAdvanceApplication() {
     }
     
     try {
-      // ⭐ 步驟 1：取得表單資料
+      // 取得表單資料
       const date = document.getElementById('advance-date')?.value;
       const amount = document.getElementById('advance-amount')?.value;
       const purpose = document.getElementById('advance-purpose')?.value;
@@ -4497,38 +4504,35 @@ async function submitAdvanceApplication() {
       console.log('   日期:', date);
       console.log('   金額:', amount);
       console.log('   用途:', purpose);
-      console.log('');
       
-      // ⭐ 步驟 2：前端驗證
+      // 前端驗證
       if (!date || !amount || !purpose) {
         console.log('❌ 欄位不完整');
-        showMessage('error', '請填寫所有欄位');
+        showNotification('請填寫所有欄位', 'error');
         return;
       }
       
       const amountNum = parseFloat(amount);
       if (isNaN(amountNum) || amountNum <= 0) {
         console.log('❌ 金額無效');
-        showMessage('error', '請輸入有效的金額');
+        showNotification('請輸入有效的金額', 'error');
         return;
       }
       
       if (purpose.trim().length < 2) {
         console.log('❌ 用途太短');
-        showMessage('error', '申請用途至少需要 2 個字');
+        showNotification('申請用途至少需要 2 個字', 'error');
         return;
       }
       
       console.log('✅ 前端驗證通過');
-      console.log('');
       
-      // ⭐ 步驟 3：設定按鈕為處理中
+      // 設定按鈕為處理中
       submitBtn.disabled = true;
       submitBtn.innerHTML = '🔄 處理中...';
       console.log('🔄 按鈕已設為處理中');
-      console.log('');
       
-      // ⭐ 步驟 4：發送 API 請求
+      // 發送 API 請求
       console.log('📡 發送 API 請求...');
       const result = await callApiFetch('submitAdvanceApplication', {
         date: date,
@@ -4536,24 +4540,19 @@ async function submitAdvanceApplication() {
         purpose: purpose
       });
       
-      console.log('');
-      console.log('📤 收到後端回應:');
-      console.log('   ok:', result.ok);
-      console.log('   msg:', result.msg);
-      console.log('   applicationId:', result.applicationId);
-      console.log('');
+      console.log('📤 收到後端回應:', result);
       
-      // ⭐ 步驟 5：處理回應
+      // 處理回應
       if (result.ok) {
         console.log('✅ 申請成功');
-        showMessage('success', result.msg || '預支申請已送出，等待審核');
+        showNotification(result.msg || '預支申請已送出，等待審核', 'success');
         
         // 清空表單
         document.getElementById('advance-date').value = '';
         document.getElementById('advance-amount').value = '';
         document.getElementById('advance-purpose').value = '';
         
-        // 重新載入申請記錄（如果有這個函數）
+        // 重新載入申請記錄
         if (typeof loadAdvanceRecords === 'function') {
           console.log('📋 重新載入申請記錄...');
           setTimeout(() => loadAdvanceRecords(), 500);
@@ -4561,36 +4560,39 @@ async function submitAdvanceApplication() {
         
       } else {
         console.log('❌ 申請失敗');
-        showMessage('error', result.msg || '申請失敗，請稍後再試');
+        showNotification(result.msg || '申請失敗，請稍後再試', 'error');
       }
       
     } catch (error) {
-      console.log('');
-      console.log('❌❌❌ 發生錯誤');
-      console.error('錯誤訊息:', error);
-      console.error('錯誤堆疊:', error.stack);
-      showMessage('error', '網路錯誤，請稍後再試');
+      console.error('❌❌❌ 發生錯誤:', error);
+      showNotification('網路錯誤，請稍後再試', 'error');
       
     } finally {
       // ⭐⭐⭐ 關鍵：一定要恢復按鈕狀態
-      console.log('');
       console.log('🔄 恢復按鈕狀態');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '🚀 提交申請';
+      submitBtn.innerHTML = '提交預支申請';
       console.log('═══════════════════════════════════════');
     }
-  }
+}
 // ==================== 📄 報銷申請功能 ====================
 
 /**
- * ✅ 提交報銷申請（完全修正版）
+ * ✅ 提交報銷申請（完全修正版 - 修正按鈕 ID）
  */
 async function submitReimbursementApplication() {
     console.log('═══════════════════════════════════════');
     console.log('📄 開始提交報銷申請');
     console.log('═══════════════════════════════════════');
     
-    const submitBtn = document.querySelector('#reimb-submit-btn');
+    // ⭐⭐⭐ 關鍵修正：改為正確的 ID
+    const submitBtn = document.getElementById('submit-reimbursement-btn');  // 👈 改這裡
+    
+    if (!submitBtn) {
+      console.error('❌ 找不到提交按鈕！');
+      showNotification('系統錯誤：找不到提交按鈕', 'error');
+      return;
+    }
     
     if (submitBtn.disabled) {
       console.log('⚠️ 按鈕已禁用，防止重複提交');
@@ -4611,36 +4613,32 @@ async function submitReimbursementApplication() {
       console.log('   摘要:', summary);
       console.log('   金額:', amount);
       console.log('   發票:', invoiceFile ? invoiceFile.name : '未上傳');
-      console.log('');
       
       // 前端驗證
       if (!date || !summary || !amount || !invoiceFile) {
         console.log('❌ 欄位不完整');
-        showMessage('error', '請填寫所有必填欄位並上傳發票');
+        showNotification('請填寫所有必填欄位並上傳發票', 'error');
         return;
       }
       
       const amountNum = parseFloat(amount);
       if (isNaN(amountNum) || amountNum <= 0) {
         console.log('❌ 金額無效');
-        showMessage('error', '請輸入有效的金額');
+        showNotification('請輸入有效的金額', 'error');
         return;
       }
       
       console.log('✅ 前端驗證通過');
-      console.log('');
       
       // 設定按鈕為處理中
       submitBtn.disabled = true;
       submitBtn.innerHTML = '🔄 處理中...';
       console.log('🔄 按鈕已設為處理中');
-      console.log('');
       
       // 轉換發票圖片為 Base64
       console.log('📸 開始轉換發票圖片...');
       const invoiceBase64 = await fileToBase64(invoiceFile);
       console.log('✅ 圖片轉換完成');
-      console.log('');
       
       // 發送 API 請求
       console.log('📡 發送 API 請求...');
@@ -4654,16 +4652,12 @@ async function submitReimbursementApplication() {
         fileName: invoiceFile.name
       });
       
-      console.log('');
-      console.log('📤 收到後端回應:');
-      console.log('   ok:', result.ok);
-      console.log('   msg:', result.msg);
-      console.log('');
+      console.log('📤 收到後端回應:', result);
       
       // 處理回應
       if (result.ok) {
         console.log('✅ 申請成功');
-        showMessage('success', result.msg || '報銷申請已送出，等待審核');
+        showNotification(result.msg || '報銷申請已送出，等待審核', 'success');
         
         // 清空表單
         document.getElementById('reimb-date').value = '';
@@ -4673,6 +4667,12 @@ async function submitReimbursementApplication() {
         document.getElementById('reimb-note').value = '';
         document.getElementById('reimb-invoice-upload').value = '';
         
+        // 清除預覽圖片
+        const previewContainer = document.getElementById('reimb-invoice-preview');
+        if (previewContainer) {
+          previewContainer.classList.add('hidden');
+        }
+        
         // 重新載入申請記錄
         if (typeof loadReimbursementRecords === 'function') {
           console.log('📋 重新載入申請記錄...');
@@ -4681,40 +4681,35 @@ async function submitReimbursementApplication() {
         
       } else {
         console.log('❌ 申請失敗');
-        showMessage('error', result.msg || '申請失敗，請稍後再試');
+        showNotification(result.msg || '申請失敗，請稍後再試', 'error');
       }
       
     } catch (error) {
-      console.log('');
-      console.log('❌❌❌ 發生錯誤');
-      console.error('錯誤訊息:', error);
-      console.error('錯誤堆疊:', error.stack);
-      showMessage('error', '網路錯誤，請稍後再試');
+      console.error('❌❌❌ 發生錯誤:', error);
+      showNotification('網路錯誤，請稍後再試', 'error');
       
     } finally {
       // ⭐⭐⭐ 關鍵：一定要恢復按鈕狀態
-      console.log('');
       console.log('🔄 恢復按鈕狀態');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '🚀 提交申請';
+      submitBtn.innerHTML = '生成憑證並送出';
       console.log('═══════════════════════════════════════');
     }
-  }
-  
-  /**
-   * 輔助函數：將檔案轉換為 Base64
-   */
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
+}
+/**
+ * 輔助函數：將檔案轉換為 Base64
+ */
+function fileToBase64(file) {
+return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+    const base64 = reader.result.split(',')[1];
+    resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+});
+}
 /**
  * ⭐ 新增：圖片壓縮函數
  */
