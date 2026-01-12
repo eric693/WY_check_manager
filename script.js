@@ -224,53 +224,6 @@ async function callApifetch(action, loadingId = "loading") {
     }
 }
 
-/**
- * 支援 POST 的 API 呼叫函數
- */
-async function callApiFetch(action, data = {}, method = 'GET') {
-    const token = localStorage.getItem("sessionToken");
-    const baseUrl = API_CONFIG.apiUrl;
-    
-    let url, options;
-    
-    if (method === 'POST') {
-        url = `${baseUrl}?action=${action}&token=${token}`;
-        options = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        };
-    } else {
-        const params = new URLSearchParams({ ...data, token });
-        url = `${baseUrl}?action=${action}&${params.toString()}`;
-        options = {
-            method: 'GET'
-        };
-    }
-    
-    try {
-        const response = await fetch(url, options);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP 錯誤: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        // 統一格式
-        if (result.success !== undefined && result.ok === undefined) {
-            result.ok = result.success;
-        }
-        
-        return result;
-        
-    } catch (error) {
-        console.error('API 呼叫失敗:', error);
-        throw error;
-    }
-}
 // ==================== 📊 管理員匯出所有員工報表功能 ====================
 
 /**
@@ -4601,7 +4554,7 @@ async function submitAdvanceApplication() {
       
       // 發送 API 請求
       console.log('📡 發送 API 請求...');
-      const result = await callApiFetch('submitAdvanceApplication', {
+      const result = await callApifetch('submitAdvanceApplication', {
         date: date,
         amount: amount,
         purpose: purpose
@@ -4709,7 +4662,7 @@ async function submitReimbursementApplication() {
       
       // 發送 API 請求
       console.log('📡 發送 API 請求...');
-      const result = await callApiFetch('submitReimbursement', {
+      const result = await callApifetch('submitReimbursement', {
         date: date,
         summary: summary,
         amount: amount,
@@ -5120,12 +5073,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==================== 💰 管理員審核費用申請功能 ====================
-/**
- * 載入待審核的預支申請
- */
-/**
- * ✅ 載入待審核的預支申請（完全修正版）
- */
 async function loadPendingAdvanceRequests() {
     console.log('═══════════════════════════════════════');
     console.log('📋 開始載入待審核預支申請');
@@ -5145,32 +5092,29 @@ async function loadPendingAdvanceRequests() {
     }
     
     try {
-        loadingEl.style.display = 'block';
-        emptyEl.style.display = 'none';
-        listEl.innerHTML = '';
-        
+        // ✅ 使用 callApifetch（小寫 f）
         console.log('📡 發送 API 請求...');
         
-        const res = await callApifetch('getPendingAdvanceRequests');
+        const res = await callApifetch('getPendingAdvanceRequests', 'advance-requests-loading');
         
         console.log('📤 收到 API 回應:', res);
         console.log('   ok:', res.ok);
         console.log('   records:', res.records);
         
-        loadingEl.style.display = 'none';
-        
         if (res.ok && res.records && res.records.length > 0) {
             console.log('✅ 有', res.records.length, '筆待審核記錄');
             renderPendingAdvanceRequests(res.records);
+            emptyEl.style.display = 'none';
         } else {
             console.log('ℹ️  沒有待審核記錄');
+            listEl.innerHTML = '';
             emptyEl.style.display = 'block';
         }
         
     } catch (error) {
         console.error('❌ 載入預支申請失敗:', error);
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (emptyEl) emptyEl.style.display = 'block';
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
     }
     
     console.log('═══════════════════════════════════════');
