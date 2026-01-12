@@ -3750,33 +3750,6 @@ async function doPunch(type) {
     
     generalButtonState(button, 'processing', loadingText);
     
-    // ==================== 上班打卡前檢查排班 ====================
-    if (type === '上班') {
-        try {
-            const userId = localStorage.getItem('sessionUserId');
-            const today = new Date().toISOString().split('T')[0];
-            
-            const shiftRes = await callApifetch(`getEmployeeShiftForDate&employeeId=${userId}&date=${today}`);
-            
-            if (shiftRes.ok && shiftRes.hasShift) {
-                const shift = shiftRes.data;
-                
-                showNotification(
-                    t('SHIFT_INFO_NOTIFICATION', {
-                        shiftType: shift.shiftType,
-                        startTime: shift.startTime,
-                        endTime: shift.endTime
-                    }) || `今日排班：${shift.shiftType} (${shift.startTime}-${shift.endTime})`,
-                    'info'
-                );
-            } else {
-                showNotification('今日無特殊排班，預設工作時間：08:30-17:30', 'info');
-            }
-        } catch (error) {
-            console.error('檢查排班失敗:', error);
-        }
-    }
-    
     // ==================== GPS 定位 ====================
     if (!navigator.geolocation) {
         showNotification(t("ERROR_GEOLOCATION", { msg: "您的瀏覽器不支援地理位置功能。" }), "error");
