@@ -686,5 +686,9 @@
   "BTN_DISABLE_ACCOUNT": "Nonaktifkan Akun",
   "BTN_ENABLE_ACCOUNT": "Aktifkan Akun",
   "ACCOUNT_DISABLED_SUCCESS": "Akun telah dinonaktifkan",
-  "ACCOUNT_ENABLED_SUCCESS": "Akun telah diaktifkan"
+  "ACCOUNT_ENABLED_SUCCESS": "Akun telah diaktifkan",
+
+  "ERR_IP_REQUIRED": "Kesalahan Sistem: Tidak dapat memperoleh lokasi jaringan Anda",
+  "ERR_IP_NOT_ALLOWED": "Lokasi jaringan Anda tidak diizinkan. Silakan hubungi administrator."
+
 }

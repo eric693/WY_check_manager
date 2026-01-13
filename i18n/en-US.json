@@ -705,5 +705,8 @@
   "BTN_DISABLE_ACCOUNT": "Disable Account",
   "BTN_ENABLE_ACCOUNT": "Enable Account",
   "ACCOUNT_DISABLED_SUCCESS": "Account disabled",
-  "ACCOUNT_ENABLED_SUCCESS": "Account enabled"
+  "ACCOUNT_ENABLED_SUCCESS": "Account enabled",
+
+  "ERR_IP_REQUIRED": "System Error: Unable to get your network location",
+  "ERR_IP_NOT_ALLOWED": "Your network location is not allowed. Please contact administrator."
 }

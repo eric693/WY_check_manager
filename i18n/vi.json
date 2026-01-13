@@ -733,5 +733,9 @@
   "BTN_DISABLE_ACCOUNT": "Vô hiệu hóa tài khoản",
   "BTN_ENABLE_ACCOUNT": "Kích hoạt tài khoản",
   "ACCOUNT_DISABLED_SUCCESS": "Tài khoản đã bị vô hiệu hóa",
-  "ACCOUNT_ENABLED_SUCCESS": "Tài khoản đã được kích hoạt"
+  "ACCOUNT_ENABLED_SUCCESS": "Tài khoản đã được kích hoạt",
+
+  "ERR_IP_REQUIRED": "Lỗi hệ thống: Không thể lấy vị trí mạng của bạn",
+  "ERR_IP_NOT_ALLOWED": "Vị trí mạng của bạn không được phép. Vui lòng liên hệ quản trị viên."
+
 }

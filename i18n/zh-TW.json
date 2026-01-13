@@ -723,5 +723,8 @@
   "BTN_DISABLE_ACCOUNT": "停用帳號",
   "BTN_ENABLE_ACCOUNT": "啟用帳號",
   "ACCOUNT_DISABLED_SUCCESS": "帳號已停用",
-  "ACCOUNT_ENABLED_SUCCESS": "帳號已啟用"
+  "ACCOUNT_ENABLED_SUCCESS": "帳號已啟用",
+
+  "ERR_IP_REQUIRED": "系統錯誤：無法取得您的網路位置",
+  "ERR_IP_NOT_ALLOWED": "您的網路位置不在允許範圍內，請聯絡管理員"
 }

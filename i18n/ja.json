@@ -686,5 +686,8 @@
   "BTN_DISABLE_ACCOUNT": "アカウントを無効化",
   "BTN_ENABLE_ACCOUNT": "アカウントを有効化",
   "ACCOUNT_DISABLED_SUCCESS": "アカウントが無効化されました",
-  "ACCOUNT_ENABLED_SUCCESS": "アカウントが有効化されました"
+  "ACCOUNT_ENABLED_SUCCESS": "アカウントが有効化されました",
+  "ERR_IP_REQUIRED": "システムエラー：ネットワーク位置を取得できません",
+  "ERR_IP_NOT_ALLOWED": "お使いのネットワーク位置は許可されていません。管理者にお問い合わせください。"
+
 }

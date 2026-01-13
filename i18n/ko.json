@@ -686,5 +686,10 @@
   "BTN_DISABLE_ACCOUNT": "계정 비활성화",
   "BTN_ENABLE_ACCOUNT": "계정 활성화",
   "ACCOUNT_DISABLED_SUCCESS": "계정이 비활성화되었습니다",
-  "ACCOUNT_ENABLED_SUCCESS": "계정이 활성화되었습니다"
+  "ACCOUNT_ENABLED_SUCCESS": "계정이 활성화되었습니다",
+
+
+  "ERR_IP_REQUIRED": "시스템 오류: 네트워크 위치를 가져올 수 없습니다",
+  "ERR_IP_NOT_ALLOWED": "귀하의 네트워크 위치는 허용되지 않습니다. 관리자에게 문의하세요."
+
 }

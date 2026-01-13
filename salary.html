@@ -727,57 +727,65 @@
                                 </div>
                             </div>
                             
-                            <!-- 👈 扣款項目（只保留一個） -->
+                            <!-- 👈 扣款項目（修正版 - 區分法定與其他） -->
                             <div class="feature-box">
                                 <h4 class="font-semibold mb-3 text-red-400" data-i18n="SALARY_DEDUCTIONS_TITLE">扣款項目</h4>
-                                <div class="space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span data-i18n="SALARY_LABOR_INS">勞保費</span>
-                                        <span id="detail-labor-fee" class="font-mono">$0</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span data-i18n="SALARY_HEALTH_INS">健保費</span>
-                                        <span id="detail-health-fee" class="font-mono">$0</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span data-i18n="SALARY_EMPLOYMENT_INS">就業保險費</span>
-                                        <span id="detail-employment-fee" class="font-mono">$0</span>
-                                    </div>
-                                    <!-- <div class="flex justify-between">
-                                        <span data-i18n="SALARY_PENSION_RATE">勞退自提率 (%)</span>
-                                        <span id="detail-pension-rate" class="font-mono">0%</span>
-                                    </div> -->
-                                    <div class="flex justify-between">
-                                        <span data-i18n="SALARY_PENSION">勞退自提金額</span>
-                                        <span id="detail-pension-self" class="font-mono">$0</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span data-i18n="SALARY_TAX">所得稅</span>
-                                        <span id="detail-income-tax" class="font-mono">$0</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span data-i18n="SALARY_LEAVE_DEDUCT">請假扣款</span>
-                                        <span id="detail-leave-deduction" class="font-mono">$0</span>
-                                    </div>
-                                    <!-- ⭐ 新增：請假明細 -->
-                                    <div id="leave-deduction-details" class="ml-4 text-xs text-gray-400 space-y-1" style="display: none;">
+                                
+                                <!-- ⭐⭐⭐ 法定扣款區塊（新增） -->
+                                <div class="mb-4 p-3 bg-red-900/10 rounded-lg border border-red-700/30">
+                                    <p class="text-sm font-semibold text-red-300 mb-2">💳 法定扣款</p>
+                                    <div class="space-y-2 text-sm">
                                         <div class="flex justify-between">
-                                            <span>• 事假（扣全薪）</span>
-                                            <span id="personal-leave-days">0天 / $0</span>
+                                            <span data-i18n="SALARY_LABOR_INS">勞保費</span>
+                                            <span id="detail-labor-fee" class="font-mono">$0</span>
                                         </div>
                                         <div class="flex justify-between">
-                                            <span>• 病假（扣半薪）</span>
-                                            <span id="sick-leave-days">0天 / $0</span>
+                                            <span data-i18n="SALARY_HEALTH_INS">健保費</span>
+                                            <span id="detail-health-fee" class="font-mono">$0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span data-i18n="SALARY_EMPLOYMENT_INS">就業保險費</span>
+                                            <span id="detail-employment-fee" class="font-mono">$0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span data-i18n="SALARY_PENSION">勞退自提金額</span>
+                                            <span id="detail-pension-self" class="font-mono">$0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span data-i18n="SALARY_TAX">所得稅</span>
+                                            <span id="detail-income-tax" class="font-mono">$0</span>
                                         </div>
                                     </div>
-                                    <div class="flex justify-between">
-                                        <span data-i18n="SALARY_OTHER_DEDUCT">其他扣款</span>
-                                        <span id="detail-other-deductions" class="font-mono">$0</span>
+                                </div>
+                                
+                                <!-- ⭐⭐⭐ 其他扣款區塊（新增） -->
+                                <div class="p-3 bg-orange-900/10 rounded-lg border border-orange-700/30">
+                                    <p class="text-sm font-semibold text-orange-300 mb-2">⚠️ 其他扣款</p>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span data-i18n="SALARY_LEAVE_DEDUCT">請假扣款</span>
+                                            <span id="detail-leave-deduction" class="font-mono">$0</span>
+                                        </div>
+                                        
+                                        <!-- ⭐ 新增：請假明細（可摺疊） -->
+                                        <div id="leave-deduction-details" class="ml-4 text-xs text-gray-400 space-y-1" style="display: none;">
+                                            <div class="flex justify-between">
+                                                <span>• 事假（扣全薪）</span>
+                                                <span id="personal-leave-days">0天 / $0</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>• 病假（扣半薪）</span>
+                                                <span id="sick-leave-days">0天 / $0</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex justify-between">
+                                            <span data-i18n="SALARY_OTHER_DEDUCT">其他扣款</span>
+                                            <span id="detail-other-deductions" class="font-mono">$0</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
                         <div class="mt-4 pt-4 border-t border-gray-700">
                             <h4 class="font-semibold mb-2" data-i18n="SALARY_BANK_INFO_TITLE">銀行資訊</h4>
                             <div class="text-sm">
