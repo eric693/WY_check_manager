@@ -1,6 +1,3 @@
-// 使用 CDN 或絕對路徑來載入 JSON 檔案
-// 注意：本檔案需要依賴 config.js，請確保它在腳本之前被載入。
-
 // ==================== 通用按鈕狀態管理 ====================
 
 function generalButtonState(button, state, loadingText = '處理中...') {
@@ -2317,50 +2314,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.removeItem("sessionToken");
         window.location.href = "/Allianz_check_manager"
     };
-    
-    /* ===== 打卡功能 ===== */
-    // function generalButtonState(button, state, loadingText = '處理中...') {
-    //     if (!button) return;
-    //     const loadingClasses = 'opacity-50 cursor-not-allowed';
-
-    //     if (state === 'processing') {
-    //         // --- 進入處理中狀態 ---
-            
-    //         // 1. 儲存原始文本 (用於恢復)
-    //         button.dataset.originalText = button.textContent;
-            
-    //         // 2. 儲存原始類別 (用於恢復樣式)
-    //         // 這是為了在恢復時移除我們為了禁用而添加的類別
-    //         button.dataset.loadingClasses = 'opacity-50 cursor-not-allowed';
-
-    //         // 3. 禁用並設置處理中文字
-    //         button.disabled = true;
-    //         button.textContent = loadingText; // 使用傳入的 loadingText
-            
-    //         // 4. 添加視覺反饋 (禁用時的樣式)
-    //         button.classList.add(...loadingClasses.split(' '));
-            
-    //         // 可選：移除 hover 效果，防止滑鼠移動時顏色變化
-    //         // 假設您的按鈕有 hover:opacity-100 之類的類別，這裡需要調整
-            
-    //     } else {
-    //         // --- 恢復到原始狀態 ---
-            
-    //         // 1. 移除視覺反饋
-    //         if (button.dataset.loadingClasses) {
-    //             button.classList.remove(...button.dataset.loadingClasses.split(' '));
-    //         }
-
-    //         // 2. 恢復禁用狀態
-    //         button.disabled = false;
-            
-    //         // 3. 恢復原始文本
-    //         if (button.dataset.originalText) {
-    //             button.textContent = button.dataset.originalText;
-    //             delete button.dataset.originalText; // 清除儲存，讓它在下一次點擊時再次儲存
-    //         }
-    //     }
-    // }
 
         /**
      * 輔助函數：計算時間差（分鐘）
@@ -3744,101 +3697,6 @@ async function doPunch(type) {
         generalButtonState(button, 'idle');
     });
 }
-/**
- * 執行打卡（修正版 - 8:30-17:30）
- */
-// async function doPunch(type) {
-//     const punchButtonId = type === '上班' ? 'punch-in-btn' : 'punch-out-btn';
-    
-//     const button = document.getElementById(punchButtonId);
-//     const loadingText = t('LOADING') || '處理中...';
-
-//     if (!button) return;
-
-//     generalButtonState(button, 'processing', loadingText);
-    
-//     // ==================== 上班打卡前檢查排班 ====================
-//     if (type === '上班') {
-//         try {
-//             const userId = localStorage.getItem('sessionUserId');
-//             const today = new Date().toISOString().split('T')[0];
-            
-//             const shiftRes = await callApifetch(`getEmployeeShiftForDate&employeeId=${userId}&date=${today}`);
-            
-//             if (shiftRes.ok && shiftRes.hasShift) {
-//                 const shift = shiftRes.data;
-                
-//                 showNotification(
-//                     t('SHIFT_INFO_NOTIFICATION', {
-//                         shiftType: shift.shiftType,
-//                         startTime: shift.startTime,
-//                         endTime: shift.endTime
-//                     }) || `今日排班：${shift.shiftType} (${shift.startTime}-${shift.endTime})`,
-//                     'info'
-//                 );
-                
-//                 const now = new Date();
-//                 const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-                
-//                 if (shift.startTime) {
-//                     const timeDiff = getTimeDifference(currentTime, shift.startTime);
-                    
-//                     if (timeDiff < -30) {
-//                         showNotification(
-//                             t('EARLY_PUNCH_WARNING') || `注意：您的排班時間是 ${shift.startTime}，目前提前超過 30 分鐘打卡。`,
-//                             'warning'
-//                         );
-//                     }
-//                     else if (timeDiff > 30) {
-//                         showNotification(
-//                             t('LATE_PUNCH_WARNING') || `注意：您的排班時間是 ${shift.startTime}，目前已遲到超過 30 分鐘。`,
-//                             'warning'
-//                         );
-//                     }
-//                 }
-//             } else {
-//                 // ⭐⭐⭐ 新增：如果沒有排班，提示預設工作時間
-//                 showNotification(
-//                     '今日無特殊排班，預設工作時間：08:30-17:30',
-//                     'info'
-//                 );
-//             }
-//         } catch (error) {
-//             console.error('檢查排班失敗:', error);
-//         }
-//     }
-    
-//     if (!navigator.geolocation) {
-//         showNotification(t("ERROR_GEOLOCATION", { msg: "您的瀏覽器不支援地理位置功能。" }), "error");
-//         generalButtonState(button, 'idle');
-//         return;
-//     }
-    
-//     navigator.geolocation.getCurrentPosition(async (pos) => {
-//         const lat = pos.coords.latitude;
-//         const lng = pos.coords.longitude;
-//         const action = `punch&type=${encodeURIComponent(type)}&lat=${lat}&lng=${lng}&note=${encodeURIComponent(navigator.userAgent)}`;
-        
-//         try {
-//             const res = await callApifetch(action);
-//             const msg = t(res.code || "UNKNOWN_ERROR", res.params || {});
-//             showNotification(msg, res.ok ? "success" : "error");
-            
-//             if (res.ok && type === '上班') {
-//                 clearShiftCache();
-//             }
-            
-//             generalButtonState(button, 'idle');
-//         } catch (err) {
-//             console.error(err);
-//             generalButtonState(button, 'idle');
-//         }
-        
-//     }, (err) => {
-//         showNotification(t("ERROR_GEOLOCATION", { msg: err.message }), "error");
-//         generalButtonState(button, 'idle');
-//     });
-// }
 
 /**
  * 輔助函數：計算時間差（分鐘）
@@ -4861,8 +4719,6 @@ function fileToBase64(file) {
     });
 }
 
-// ==================== 📊 載入申請記錄 ====================
-
 /**
  * 載入費用申請記錄
  */
@@ -5152,15 +5008,6 @@ async function loadPendingAdvanceRequests() {
     const emptyEl = document.getElementById('advance-requests-empty');
     const listEl = document.getElementById('pending-advance-list');
     
-    // ⭐⭐⭐ 關鍵檢查：DOM 元素是否存在
-    if (!loadingEl || !emptyEl || !listEl) {
-        console.error('❌ 找不到必要的 DOM 元素');
-        console.log('   loadingEl:', loadingEl);
-        console.log('   emptyEl:', emptyEl);
-        console.log('   listEl:', listEl);
-        return;
-    }
-    
     try {
         // ✅ 使用 callApifetch（小寫 f）
         console.log('📡 發送 API 請求...');
@@ -5187,7 +5034,6 @@ async function loadPendingAdvanceRequests() {
         emptyEl.style.display = 'block';
     }
     
-    console.log('═══════════════════════════════════════');
 }
 /**
  * ✅ 渲染待審核的預支申請（完全修正版）
@@ -5491,8 +5337,6 @@ async function reviewReimbursementApplication(applicationId, index, action) {
     }
 }
 
-// script.js - IP 白名單管理功能
-
 /**
  * 新增 IP 白名單
  */
@@ -5642,11 +5486,6 @@ async function processInvoiceOCR(file) {
     console.log('═══════════════════════════════════════');
     console.log('🧾 開始處理發票辨識');
     console.log('═══════════════════════════════════════');
-    
-    if (!file) {
-        showNotification('請選擇檔案', 'error');
-        return;
-    }
     
     // 檢查檔案類型
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
