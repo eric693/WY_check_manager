@@ -708,5 +708,21 @@
   "ACCOUNT_ENABLED_SUCCESS": "Account enabled",
 
   "ERR_IP_REQUIRED": "System Error: Unable to get your network location",
-  "ERR_IP_NOT_ALLOWED": "Your network location is not allowed. Please contact administrator."
+  "ERR_IP_NOT_ALLOWED": "Your network location is not allowed. Please contact administrator.",
+
+
+  "INVOICE_OCR_TITLE": "🧾 Invoice Scanner",
+  "INVOICE_OCR_DESCRIPTION": "Take a photo or upload invoice image, AI will automatically recognize and fill in the reimbursement form",
+  "BTN_CAMERA_SCAN": "Camera Scan",
+  "BTN_UPLOAD_SCAN": "Upload Scan",
+  "OCR_PROCESSING": "AI is recognizing invoice content...",
+  "OCR_SUCCESS": "✅ Recognition Successful!",
+  "OCR_INVOICE_NUMBER": "Invoice Number:",
+  "OCR_DATE": "Date:",
+  "OCR_AMOUNT": "Amount:",
+  "OCR_STORE": "Store:",
+  "BTN_FILL_FORM": "📝 Fill Form",
+  "BTN_SCAN_AGAIN": "🔄 Scan Again",
+  "OCR_ERROR_TITLE": "❌ Recognition Failed",
+  "BTN_TRY_AGAIN": "Try Again"
 }

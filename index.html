@@ -813,65 +813,142 @@
                 <!-- 💰 費用管理頁面 (Expense View) -->
                 <section id="expense-view" class="space-y-6" style="display: none;">
                     
-                    <!-- 📋 預支申請表單 -->
-                    <div class="card p-6">
-                        <h2 data-i18n="EXPENSE_ADVANCE_TITLE" 
-                            class="text-xl font-bold text-gray-800 dark:text-white mb-2">
-                            💰 預支申請
-                        </h2>
-                        <p data-i18n="EXPENSE_ADVANCE_DESCRIPTION" 
-                        class="text-gray-500 dark:text-gray-400 mb-4">
-                            填寫以下資訊以提交預支申請
+                    <!-- 🧾 發票辨識區塊 (新增) -->
+                    <div class="card p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700">
+                        <div class="flex items-center mb-4">
+                            <div class="w-1 h-8 bg-blue-600 dark:bg-blue-400 rounded-full mr-3"></div>
+                            <h2 data-i18n="INVOICE_OCR_TITLE" 
+                                class="text-2xl font-bold text-gray-800 dark:text-white">
+                                🧾 發票辨識助手
+                            </h2>
+                        </div>
+                        <p data-i18n="INVOICE_OCR_DESCRIPTION" 
+                        class="text-gray-600 dark:text-gray-400 mb-6">
+                            拍攝或上傳發票照片，AI 自動辨識並填入報銷表單
                         </p>
                         
                         <div class="space-y-4">
-                            <!-- 申請日期 -->
-                            <div>
-                                <label data-i18n="EXPENSE_ADVANCE_DATE_LABEL" 
-                                    for="advance-date" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    申請日期
-                                </label>
-                                <input type="date" 
-                                    id="advance-date" 
-                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            <!-- 上傳按鈕區 -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <button type="button"
+                                        onclick="document.getElementById('invoice-ocr-camera').click()"
+                                        class="py-4 px-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col items-center space-y-2">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                    <span data-i18n="BTN_CAMERA_SCAN">拍照辨識</span>
+                                </button>
+                                
+                                <button type="button"
+                                        onclick="document.getElementById('invoice-ocr-upload').click()"
+                                        class="py-4 px-6 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col items-center space-y-2">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span data-i18n="BTN_UPLOAD_SCAN">上傳辨識</span>
+                                </button>
                             </div>
                             
-                            <!-- 申請金額 -->
-                            <div>
-                                <label data-i18n="EXPENSE_ADVANCE_AMOUNT_LABEL" 
-                                    for="advance-amount" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    申請金額（元）
-                                </label>
-                                <input type="number" 
-                                    id="advance-amount" 
-                                    min="0"
-                                    step="1"
-                                    placeholder="0" 
-                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
-                            </div>
+                            <!-- 隱藏的檔案輸入 -->
+                            <input type="file" 
+                                id="invoice-ocr-camera" 
+                                accept="image/*"
+                                capture="environment"
+                                onchange="processInvoiceOCR(this.files[0])"
+                                class="hidden">
                             
-                            <!-- 申請用途 -->
-                            <div>
-                                <label data-i18n="EXPENSE_ADVANCE_PURPOSE_LABEL" 
-                                    for="advance-purpose" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    申請用途
-                                </label>
-                                <textarea id="advance-purpose" 
-                                        rows="3" 
-                                        placeholder="請說明申請用途..."
-                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                            </div>
+                            <input type="file" 
+                                id="invoice-ocr-upload" 
+                                accept="image/*"
+                                onchange="processInvoiceOCR(this.files[0])"
+                                class="hidden">
                             
-                            <!-- 提交按鈕 -->
-                            <button id="submit-advance-btn" 
-                                    onclick="submitAdvanceApplication()"
-                                    data-i18n="BTN_SUBMIT_ADVANCE"
-                                    class="w-full py-3 px-4 rounded-lg font-bold btn-primary">
-                                提交預支申請
-                            </button>
+                            <!-- 預覽與結果區 -->
+                            <div id="invoice-ocr-preview" class="hidden mt-4">
+                                <!-- 圖片預覽 -->
+                                <div class="mb-4">
+                                    <img id="invoice-ocr-preview-img" 
+                                        src="" 
+                                        alt="發票預覽" 
+                                        class="max-w-full h-auto rounded-lg border-2 border-blue-300 dark:border-blue-600 shadow-md">
+                                </div>
+                                
+                                <!-- 辨識中狀態 -->
+                                <div id="invoice-ocr-loading" class="hidden text-center py-8">
+                                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4"></div>
+                                    <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg">
+                                        <span data-i18n="OCR_PROCESSING">AI 正在辨識發票內容...</span>
+                                    </p>
+                                </div>
+                                
+                                <!-- 辨識結果 -->
+                                <div id="invoice-ocr-result" class="hidden">
+                                    <div class="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl p-6 mb-4">
+                                        <div class="flex items-center mb-4">
+                                            <svg class="w-6 h-6 text-green-600 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <h3 class="text-lg font-bold text-green-800 dark:text-green-300">
+                                                <span data-i18n="OCR_SUCCESS">✅ 辨識成功！</span>
+                                            </h3>
+                                        </div>
+                                        
+                                        <div class="space-y-3 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600 dark:text-gray-400" data-i18n="OCR_INVOICE_NUMBER">發票號碼：</span>
+                                                <span id="ocr-invoice-number" class="font-bold text-gray-800 dark:text-white">--</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600 dark:text-gray-400" data-i18n="OCR_DATE">日期：</span>
+                                                <span id="ocr-date" class="font-bold text-gray-800 dark:text-white">--</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600 dark:text-gray-400" data-i18n="OCR_AMOUNT">金額：</span>
+                                                <span id="ocr-amount" class="font-bold text-xl text-green-600 dark:text-green-400">NT$ --</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600 dark:text-gray-400" data-i18n="OCR_STORE">店家：</span>
+                                                <span id="ocr-store" class="font-bold text-gray-800 dark:text-white">--</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 操作按鈕 -->
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button type="button"
+                                                onclick="fillReimbursementForm()"
+                                                class="py-3 px-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all duration-300">
+                                            <span data-i18n="BTN_FILL_FORM">📝 填入表單</span>
+                                        </button>
+                                        <button type="button"
+                                                onclick="resetInvoiceOCR()"
+                                                class="py-3 px-6 bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all duration-300">
+                                            <span data-i18n="BTN_SCAN_AGAIN">🔄 重新辨識</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 錯誤訊息 -->
+                                <div id="invoice-ocr-error" class="hidden bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-xl p-6">
+                                    <div class="flex items-start">
+                                        <svg class="w-6 h-6 text-red-600 dark:text-red-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-red-800 dark:text-red-300 mb-2">
+                                                <span data-i18n="OCR_ERROR_TITLE">❌ 辨識失敗</span>
+                                            </h3>
+                                            <p id="invoice-ocr-error-msg" class="text-red-700 dark:text-red-400 text-sm"></p>
+                                            <button type="button"
+                                                    onclick="resetInvoiceOCR()"
+                                                    class="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-sm">
+                                                <span data-i18n="BTN_TRY_AGAIN">重試</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     

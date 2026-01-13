@@ -726,5 +726,20 @@
   "ACCOUNT_ENABLED_SUCCESS": "帳號已啟用",
 
   "ERR_IP_REQUIRED": "系統錯誤：無法取得您的網路位置",
-  "ERR_IP_NOT_ALLOWED": "您的網路位置不在允許範圍內，請聯絡管理員"
+  "ERR_IP_NOT_ALLOWED": "您的網路位置不在允許範圍內，請聯絡管理員",
+
+  "INVOICE_OCR_TITLE": "🧾 發票辨識助手",
+  "INVOICE_OCR_DESCRIPTION": "拍攝或上傳發票照片，AI 自動辨識並填入報銷表單",
+  "BTN_CAMERA_SCAN": "拍照辨識",
+  "BTN_UPLOAD_SCAN": "上傳辨識",
+  "OCR_PROCESSING": "AI 正在辨識發票內容...",
+  "OCR_SUCCESS": "✅ 辨識成功！",
+  "OCR_INVOICE_NUMBER": "發票號碼：",
+  "OCR_DATE": "日期：",
+  "OCR_AMOUNT": "金額：",
+  "OCR_STORE": "店家：",
+  "BTN_FILL_FORM": "📝 填入表單",
+  "BTN_SCAN_AGAIN": "🔄 重新辨識",
+  "OCR_ERROR_TITLE": "❌ 辨識失敗",
+  "BTN_TRY_AGAIN": "重試"
 }
