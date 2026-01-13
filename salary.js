@@ -597,19 +597,37 @@ function displayEmployeeSalary(data) {
     safeSet('detail-labor-fee', formatCurrency(data['勞保費']));
     safeSet('detail-health-fee', formatCurrency(data['健保費']));
     safeSet('detail-employment-fee', formatCurrency(data['就業保險費']));
-    
+
     const pensionRate = parseFloat(data['勞退自提率']) || 0;
     safeSet('detail-pension-rate', `${pensionRate}%`);
-    
+
     safeSet('detail-pension-self', formatCurrency(data['勞退自提']));
     safeSet('detail-income-tax', formatCurrency(data['所得稅']));
     safeSet('detail-leave-deduction', formatCurrency(data['請假扣款']));
-    
-    const otherDeductions = 
-        (parseFloat(data['福利金扣款']) || 0) +
-        (parseFloat(data['宿舍費用']) || 0) +
-        (parseFloat(data['團保費用']) || 0) +
-        (parseFloat(data['其他扣款']) || 0);
+
+    // ⭐⭐⭐ 修正：加入 Math.round() 避免浮點數誤差
+    const welfareFee = Math.round(parseFloat(data['福利金扣款']) || 0);
+    const dormitoryFee = Math.round(parseFloat(data['宿舍費用']) || 0);
+    const groupInsurance = Math.round(parseFloat(data['團保費用']) || 0);
+    const otherDeductionsRaw = Math.round(parseFloat(data['其他扣款']) || 0);
+
+    console.log('📊 其他扣款明細檢查:', {
+        福利金扣款: welfareFee,
+        宿舍費用: dormitoryFee,
+        團保費用: groupInsurance,
+        其他扣款: otherDeductionsRaw,
+        原始資料: {
+            福利金: data['福利金扣款'],
+            宿舍: data['宿舍費用'],
+            團保: data['團保費用'],
+            其他: data['其他扣款']
+        }
+    });
+
+    const otherDeductions = welfareFee + dormitoryFee + groupInsurance + otherDeductionsRaw;
+
+    console.log('💰 其他扣款總計:', otherDeductions);
+
     safeSet('detail-other-deductions', formatCurrency(otherDeductions));
     
     // 銀行資訊
