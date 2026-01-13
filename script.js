@@ -5477,6 +5477,44 @@ async function deleteIPFromWhitelist(rowNumber, ipRange) {
 
 let currentOCRData = null; // 儲存當前辨識結果
 
+
+/**
+ * 處理發票上傳（拍照或檔案上傳）
+ */
+async function handleInvoiceUpload(event, source) {
+    console.log('📸 handleInvoiceUpload 觸發:', source);
+    
+    const file = event.target.files[0];
+    
+    if (!file) {
+        console.log('⚠️ 沒有選擇檔案');
+        return;
+    }
+    
+    console.log('📄 檔案資訊:');
+    console.log('   檔名:', file.name);
+    console.log('   大小:', (file.size / 1024).toFixed(2), 'KB');
+    console.log('   類型:', file.type);
+    console.log('   來源:', source === 'camera' ? '📷 拍照' : '📁 上傳');
+    
+    // 顯示預覽
+    const previewContainer = document.getElementById('invoice-preview-container');
+    const previewImg = document.getElementById('invoice-preview');
+    
+    if (previewContainer && previewImg) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImg.src = e.target.result;
+            previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    // 呼叫 OCR 處理
+    await processInvoiceOCR(file);
+}
+
+
 /**
  * 處理發票 OCR
  */
@@ -5660,3 +5698,5 @@ function resetInvoiceOCR() {
     document.getElementById('invoice-ocr-camera').value = '';
     document.getElementById('invoice-ocr-upload').value = '';
 }
+
+
