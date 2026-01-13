@@ -4349,108 +4349,106 @@ function initExpenseTab() {
 
 // ==================== 💰 預支申請功能 ====================
 
-/**
- * ✅ 提交預支申請（完全修正版 - 修正按鈕 ID）
- */
 async function submitAdvanceApplication() {
-    console.log('═══════════════════════════════════════');
     console.log('📝 開始提交預支申請');
-    console.log('═══════════════════════════════════════');
     
-    // ⭐⭐⭐ 關鍵修正：改為正確的 ID
-    const submitBtn = document.getElementById('submit-advance-btn');  // 👈 改這裡
+    const submitBtn = document.getElementById('submit-advance-btn');
     
     if (!submitBtn) {
-      console.error('❌ 找不到提交按鈕！');
-      showNotification('系統錯誤：找不到提交按鈕', 'error');
-      return;
+        console.error('❌ 找不到提交按鈕！');
+        showNotification('系統錯誤：找不到提交按鈕', 'error');
+        return;
     }
     
     // 防止重複提交
     if (submitBtn.disabled) {
-      console.log('⚠️ 按鈕已禁用，防止重複提交');
-      return;
+        console.log('⚠️ 按鈕已禁用，防止重複提交');
+        return;
     }
     
     try {
-      // 取得表單資料
-      const date = document.getElementById('advance-date')?.value;
-      const amount = document.getElementById('advance-amount')?.value;
-      const purpose = document.getElementById('advance-purpose')?.value;
-      
-      console.log('📋 表單資料:');
-      console.log('   日期:', date);
-      console.log('   金額:', amount);
-      console.log('   用途:', purpose);
-      
-      // 前端驗證
-      if (!date || !amount || !purpose) {
-        console.log('❌ 欄位不完整');
-        showNotification('請填寫所有欄位', 'error');
-        return;
-      }
-      
-      const amountNum = parseFloat(amount);
-      if (isNaN(amountNum) || amountNum <= 0) {
-        console.log('❌ 金額無效');
-        showNotification('請輸入有效的金額', 'error');
-        return;
-      }
-      
-      if (purpose.trim().length < 2) {
-        console.log('❌ 用途太短');
-        showNotification('申請用途至少需要 2 個字', 'error');
-        return;
-      }
-      
-      console.log('✅ 前端驗證通過');
-      
-      // 設定按鈕為處理中
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '🔄 處理中...';
-      console.log('🔄 按鈕已設為處理中');
-      
-      // 發送 API 請求
-      console.log('📡 發送 API 請求...');
-      const result = await callApifetch('submitAdvanceApplication', {
-        date: date,
-        amount: amount,
-        purpose: purpose
-      });
-      
-      console.log('📤 收到後端回應:', result);
-      
-      // 處理回應
-      if (result.ok) {
-        console.log('✅ 申請成功');
-        showNotification(result.msg || '預支申請已送出，等待審核', 'success');
+        // 取得表單資料
+        const date = document.getElementById('advance-date')?.value;
+        const amount = document.getElementById('advance-amount')?.value;
+        const purpose = document.getElementById('advance-purpose')?.value;
         
-        // 清空表單
-        document.getElementById('advance-date').value = '';
-        document.getElementById('advance-amount').value = '';
-        document.getElementById('advance-purpose').value = '';
+        console.log('📋 表單資料:');
+        console.log('   日期:', date);
+        console.log('   金額:', amount);
+        console.log('   用途:', purpose);
         
-        // 重新載入申請記錄
-        if (typeof loadAdvanceRecords === 'function') {
-          console.log('📋 重新載入申請記錄...');
-          setTimeout(() => loadAdvanceRecords(), 500);
+        // 前端驗證
+        if (!date || !amount || !purpose) {
+            console.log('❌ 欄位不完整');
+            showNotification('請填寫所有欄位', 'error');
+            return;
         }
         
-      } else {
-        console.log('❌ 申請失敗');
-        showNotification(result.msg || '申請失敗，請稍後再試', 'error');
-      }
-      
+        const amountNum = parseFloat(amount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+            console.log('❌ 金額無效');
+            showNotification('請輸入有效的金額', 'error');
+            return;
+        }
+        
+        if (purpose.trim().length < 2) {
+            console.log('❌ 用途太短');
+            showNotification('申請用途至少需要 2 個字', 'error');
+            return;
+        }
+        
+        console.log('✅ 前端驗證通過');
+        
+        // 設定按鈕為處理中
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '🔄 處理中...';
+        console.log('🔄 按鈕已設為處理中');
+        
+        // ⭐⭐⭐ 關鍵修正：改用 URL 參數方式
+        const userId = localStorage.getItem('sessionUserId');
+        const params = new URLSearchParams({
+            date: date,
+            amount: amount,
+            purpose: purpose,
+            userId: userId
+        });
+        
+        // 發送 API 請求
+        console.log('📡 發送 API 請求...');
+        const result = await callApifetch(`submitAdvanceApplication&${params.toString()}`);
+        
+        console.log('📤 收到後端回應:', result);
+        
+        // 處理回應
+        if (result.ok) {
+            console.log('✅ 申請成功');
+            showNotification(result.msg || '預支申請已送出，等待審核', 'success');
+            
+            // 清空表單
+            document.getElementById('advance-date').value = '';
+            document.getElementById('advance-amount').value = '';
+            document.getElementById('advance-purpose').value = '';
+            
+            // 重新載入申請記錄
+            if (typeof loadAdvanceRecords === 'function') {
+                console.log('📋 重新載入申請記錄...');
+                setTimeout(() => loadAdvanceRecords(), 500);
+            }
+            
+        } else {
+            console.log('❌ 申請失敗');
+            showNotification(result.msg || '申請失敗，請稍後再試', 'error');
+        }
+        
     } catch (error) {
-      console.error('❌❌❌ 發生錯誤:', error);
-      showNotification('網路錯誤，請稍後再試', 'error');
-      
+        console.error('❌❌❌ 發生錯誤:', error);
+        showNotification('網路錯誤，請稍後再試', 'error');
+        
     } finally {
-      // ⭐⭐⭐ 關鍵：一定要恢復按鈕狀態
-      console.log('🔄 恢復按鈕狀態');
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '提交預支申請';
-      console.log('═══════════════════════════════════════');
+        // ⭐⭐⭐ 關鍵：一定要恢復按鈕狀態
+        console.log('🔄 恢復按鈕狀態');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '提交預支申請';
     }
 }
 // ==================== 📄 報銷申請功能 ====================
