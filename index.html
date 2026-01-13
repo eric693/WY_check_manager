@@ -810,332 +810,373 @@
                     
                 </section>
                 
-                <!-- 💰 費用管理頁面 (Expense View) -->
-                <section id="expense-view" class="space-y-6" style="display: none;">
-                    
-                    <!-- 🧾 發票辨識區塊 (新增) -->
-                    <div class="card p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700">
-                        <div class="flex items-center mb-4">
-                            <div class="w-1 h-8 bg-blue-600 dark:bg-blue-400 rounded-full mr-3"></div>
-                            <h2 data-i18n="INVOICE_OCR_TITLE" 
-                                class="text-2xl font-bold text-gray-800 dark:text-white">
-                                🧾 發票辨識助手
-                            </h2>
-                        </div>
-                        <p data-i18n="INVOICE_OCR_DESCRIPTION" 
-                        class="text-gray-600 dark:text-gray-400 mb-6">
-                            拍攝或上傳發票照片，AI 自動辨識並填入報銷表單
-                        </p>
+                <!-- 💰 費用管理 -->
+                <div id="expense-view" class="view-content">
+                    <div class="max-w-4xl mx-auto space-y-6">
                         
-                        <div class="space-y-4">
-                            <!-- 上傳按鈕區 -->
-                            <div class="grid grid-cols-2 gap-3">
-                                <button type="button"
-                                        onclick="document.getElementById('invoice-ocr-camera').click()"
-                                        class="py-4 px-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col items-center space-y-2">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    </svg>
-                                    <span data-i18n="BTN_CAMERA_SCAN">拍照辨識</span>
+                        <!-- 🧾 發票辨識助手 -->
+                        <div class="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-2xl">
+                                    🧾
+                                </div>
+                                <div>
+                                    <h2 data-i18n="INVOICE_OCR_TITLE" class="text-xl font-bold text-gray-800 dark:text-white">
+                                        發票辨識助手
+                                    </h2>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                                        使用 AI 快速辨識發票資訊
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- 上傳按鈕 -->
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <button onclick="document.getElementById('invoice-camera-input').click()"
+                                        data-i18n="BTN_CAMERA_SCAN"
+                                        class="py-3 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2">
+                                    📷 拍照辨識
                                 </button>
-                                
-                                <button type="button"
-                                        onclick="document.getElementById('invoice-ocr-upload').click()"
-                                        class="py-4 px-6 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col items-center space-y-2">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
-                                    <span data-i18n="BTN_UPLOAD_SCAN">上傳辨識</span>
+                                <button onclick="document.getElementById('invoice-file-input').click()"
+                                        data-i18n="BTN_UPLOAD_SCAN"
+                                        class="py-3 px-4 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg font-bold hover:from-indigo-600 hover:to-indigo-700 transition-all flex items-center justify-center gap-2">
+                                    📁 上傳辨識
                                 </button>
                             </div>
                             
                             <!-- 隱藏的檔案輸入 -->
                             <input type="file" 
-                                id="invoice-ocr-camera" 
-                                accept="image/*"
+                                id="invoice-camera-input" 
+                                accept="image/*" 
                                 capture="environment"
-                                onchange="processInvoiceOCR(this.files[0])"
+                                onchange="handleInvoiceUpload(event, 'camera')"
                                 class="hidden">
-                            
                             <input type="file" 
-                                id="invoice-ocr-upload" 
+                                id="invoice-file-input" 
                                 accept="image/*"
-                                onchange="processInvoiceOCR(this.files[0])"
+                                onchange="handleInvoiceUpload(event, 'file')"
                                 class="hidden">
                             
-                            <!-- 預覽與結果區 -->
-                            <div id="invoice-ocr-preview" class="hidden mt-4">
-                                <!-- 圖片預覽 -->
-                                <div class="mb-4">
-                                    <img id="invoice-ocr-preview-img" 
-                                        src="" 
-                                        alt="發票預覽" 
-                                        class="max-w-full h-auto rounded-lg border-2 border-blue-300 dark:border-blue-600 shadow-md">
-                                </div>
-                                
-                                <!-- 辨識中狀態 -->
-                                <div id="invoice-ocr-loading" class="hidden text-center py-8">
-                                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4"></div>
-                                    <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg">
-                                        <span data-i18n="OCR_PROCESSING">AI 正在辨識發票內容...</span>
-                                    </p>
-                                </div>
-                                
-                                <!-- 辨識結果 -->
-                                <div id="invoice-ocr-result" class="hidden">
-                                    <div class="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl p-6 mb-4">
-                                        <div class="flex items-center mb-4">
-                                            <svg class="w-6 h-6 text-green-600 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            <h3 class="text-lg font-bold text-green-800 dark:text-green-300">
-                                                <span data-i18n="OCR_SUCCESS">✅ 辨識成功！</span>
-                                            </h3>
-                                        </div>
-                                        
-                                        <div class="space-y-3 text-sm">
-                                            <div class="flex justify-between">
-                                                <span class="text-gray-600 dark:text-gray-400" data-i18n="OCR_INVOICE_NUMBER">發票號碼：</span>
-                                                <span id="ocr-invoice-number" class="font-bold text-gray-800 dark:text-white">--</span>
-                                            </div>
-                                            <div class="flex justify-between">
-                                                <span class="text-gray-600 dark:text-gray-400" data-i18n="OCR_DATE">日期：</span>
-                                                <span id="ocr-date" class="font-bold text-gray-800 dark:text-white">--</span>
-                                            </div>
-                                            <div class="flex justify-between">
-                                                <span class="text-gray-600 dark:text-gray-400" data-i18n="OCR_AMOUNT">金額：</span>
-                                                <span id="ocr-amount" class="font-bold text-xl text-green-600 dark:text-green-400">NT$ --</span>
-                                            </div>
-                                            <div class="flex justify-between">
-                                                <span class="text-gray-600 dark:text-gray-400" data-i18n="OCR_STORE">店家：</span>
-                                                <span id="ocr-store" class="font-bold text-gray-800 dark:text-white">--</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 操作按鈕 -->
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <button type="button"
-                                                onclick="fillReimbursementForm()"
-                                                class="py-3 px-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all duration-300">
-                                            <span data-i18n="BTN_FILL_FORM">📝 填入表單</span>
-                                        </button>
-                                        <button type="button"
-                                                onclick="resetInvoiceOCR()"
-                                                class="py-3 px-6 bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition-all duration-300">
-                                            <span data-i18n="BTN_SCAN_AGAIN">🔄 重新辨識</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- 錯誤訊息 -->
-                                <div id="invoice-ocr-error" class="hidden bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-xl p-6">
-                                    <div class="flex items-start">
-                                        <svg class="w-6 h-6 text-red-600 dark:text-red-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        <div>
-                                            <h3 class="text-lg font-bold text-red-800 dark:text-red-300 mb-2">
-                                                <span data-i18n="OCR_ERROR_TITLE">❌ 辨識失敗</span>
-                                            </h3>
-                                            <p id="invoice-ocr-error-msg" class="text-red-700 dark:text-red-400 text-sm"></p>
-                                            <button type="button"
-                                                    onclick="resetInvoiceOCR()"
-                                                    class="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-sm">
-                                                <span data-i18n="BTN_TRY_AGAIN">重試</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                            <!-- 圖片預覽容器 -->
+                            <div id="invoice-preview-container" class="hidden mb-4">
+                                <img id="invoice-preview" 
+                                    src="" 
+                                    alt="發票預覽" 
+                                    class="w-full max-h-64 object-contain rounded-lg border-2 border-gray-300 dark:border-gray-600">
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 📄 報銷申請表單 -->
-                    <div class="card p-6">
-                        <h2 data-i18n="EXPENSE_REIMBURSEMENT_TITLE" 
-                            class="text-xl font-bold text-gray-800 dark:text-white mb-2">
-                            📄 報銷申請
-                        </h2>
-                        <p data-i18n="EXPENSE_REIMBURSEMENT_DESCRIPTION" 
-                        class="text-gray-500 dark:text-gray-400 mb-4">
-                            上傳發票並填寫會計憑證資訊
-                        </p>
-                        
-                        <div class="space-y-4">
-                            <!-- 上傳發票照片 -->
-                            <div>
-                                <label data-i18n="EXPENSE_INVOICE_UPLOAD_LABEL" 
-                                    for="reimb-invoice-upload" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    上傳發票照片 <span class="text-red-500">*</span>
-                                </label>
-                                <div class="flex items-center space-x-3">
-                                    <input type="file" 
-                                        id="reimbursement-invoice-image" 
-                                        accept="image/*"
-                                        capture="environment"
-                                        class="hidden">
-                                    <button type="button"
-                                            onclick="document.getElementById('reimbursement-invoice-image').click()"
-                                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center space-x-2">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                        </svg>
-                                        <span data-i18n="BTN_TAKE_PHOTO">拍照上傳</span>
+                            
+                            <!-- 載入中 -->
+                            <div id="ocr-loading" class="hidden text-center py-6">
+                                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                                <p data-i18n="OCR_PROCESSING" class="mt-4 text-gray-600 dark:text-gray-300">
+                                    AI 正在辨識發票內容...
+                                </p>
+                            </div>
+                            
+                            <!-- 辨識成功 -->
+                            <div id="ocr-success" class="hidden bg-green-50 dark:bg-green-900 rounded-lg p-4 space-y-2">
+                                <p data-i18n="OCR_SUCCESS" class="font-bold text-green-800 dark:text-green-200 mb-3">
+                                    ✅ 辨識成功！
+                                </p>
+                                <div class="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span data-i18n="OCR_INVOICE_NUMBER" class="text-gray-600 dark:text-gray-300">發票號碼：</span>
+                                        <span id="ocr-invoice-number" class="font-bold text-gray-800 dark:text-white"></span>
+                                    </div>
+                                    <div>
+                                        <span data-i18n="OCR_DATE" class="text-gray-600 dark:text-gray-300">日期：</span>
+                                        <span id="ocr-date" class="font-bold text-gray-800 dark:text-white"></span>
+                                    </div>
+                                    <div>
+                                        <span data-i18n="OCR_AMOUNT" class="text-gray-600 dark:text-gray-300">金額：</span>
+                                        <span id="ocr-amount" class="font-bold text-green-600 dark:text-green-400"></span>
+                                    </div>
+                                    <div>
+                                        <span data-i18n="OCR_STORE" class="text-gray-600 dark:text-gray-300">店家：</span>
+                                        <span id="ocr-store" class="font-bold text-gray-800 dark:text-white"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 操作按鈕 -->
+                                <div class="grid grid-cols-2 gap-3 mt-4">
+                                    <button onclick="fillReimbursementForm()"
+                                            data-i18n="BTN_FILL_FORM"
+                                            class="py-2 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold hover:from-green-600 hover:to-green-700 transition-all">
+                                        📝 填入表單
                                     </button>
-                                    <span id="reimb-invoice-file-name" class="text-sm text-gray-500 dark:text-gray-400">
-                                        尚未選擇檔案
-                                    </span>
-                                </div>
-                                <!-- 預覽圖片 -->
-                                <div id="reimb-invoice-preview" class="mt-3 hidden">
-                                    <img id="reimb-invoice-preview-img" 
-                                        src="" 
-                                        alt="發票預覽" 
-                                        class="max-w-full h-auto rounded-lg border border-gray-300 dark:border-gray-600">
+                                    <button onclick="resetInvoiceOCR()"
+                                            data-i18n="BTN_SCAN_AGAIN"
+                                            class="py-2 px-4 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg font-bold hover:from-gray-600 hover:to-gray-700 transition-all">
+                                        🔄 重新辨識
+                                    </button>
                                 </div>
                             </div>
                             
-                            <!-- 費用日期 -->
-                            <div>
-                                <label data-i18n="EXPENSE_DATE_LABEL" 
-                                    for="reimb-date" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    費用日期 <span class="text-red-500">*</span>
-                                </label>
-                                <input type="date" 
-                                    id="reimb-date" 
-                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                            <!-- 辨識失敗 -->
+                            <div id="ocr-error" class="hidden bg-red-50 dark:bg-red-900 rounded-lg p-4">
+                                <p data-i18n="OCR_ERROR_TITLE" class="font-bold text-red-800 dark:text-red-200 mb-2">
+                                    ❌ 辨識失敗
+                                </p>
+                                <p id="ocr-error-message" class="text-red-600 dark:text-red-300 text-sm mb-3">
+                                    請確認圖片清晰度後重試
+                                </p>
+                                <button onclick="resetInvoiceOCR()"
+                                        data-i18n="BTN_SCAN_AGAIN"
+                                        class="w-full py-2 px-4 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition-all">
+                                    🔄 重新辨識
+                                </button>
                             </div>
-                            
-                            <!-- 費用摘要 -->
-                            <div>
-                                <label data-i18n="EXPENSE_SUMMARY_LABEL" 
-                                    for="reimb-summary" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    費用摘要 <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" 
-                                    id="reimb-summary" 
-                                    placeholder="例如：購買辦公用品、客戶餐費"
-                                    maxlength="100"
-                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
-                            </div>
-                            
-                            <!-- 報銷金額 -->
-                            <div>
-                                <label data-i18n="EXPENSE_AMOUNT_LABEL" 
-                                    for="reimb-amount" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    報銷金額（元）<span class="text-red-500">*</span>
-                                </label>
-                                <input type="number" 
-                                    id="reimb-amount" 
-                                    min="0"
-                                    step="1"
-                                    placeholder="0" 
-                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
-                            </div>
-                            
-                            <!-- 發票號碼 -->
-                            <div>
-                                <label data-i18n="EXPENSE_INVOICE_NUMBER_LABEL" 
-                                    for="reimb-invoice-number" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    發票號碼
-                                </label>
-                                <input type="text" 
-                                    id="reimb-invoice-number" 
-                                    placeholder="例如：AA-12345678"
-                                    maxlength="20"
-                                    class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
-                            </div>
-                            
-                            <!-- 備註 -->
-                            <div>
-                                <label data-i18n="EXPENSE_NOTE_LABEL" 
-                                    for="reimb-note" 
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    備註
-                                </label>
-                                <textarea id="reimb-note" 
-                                        rows="2" 
-                                        placeholder="其他補充說明..."
-                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                            </div>
-                            
-                            <!-- 提交按鈕 -->
-                            <button id="submit-reimbursement-btn" 
-                                    onclick="submitReimbursementApplication()"
-                                    data-i18n="BTN_SUBMIT_REIMBURSEMENT"
-                                    class="w-full py-3 px-4 rounded-lg font-bold btn-primary">
-                                生成憑證並送出
-                            </button>
-                        </div>
-                    </div>
-                   
-                    <!-- 我的申請記錄 -->
-                    <div class="card p-6">
-                        <h2 data-i18n="EXPENSE_RECORDS_TITLE" 
-                            class="text-xl font-bold text-gray-800 dark:text-white mb-2">
-                            我的申請記錄
-                        </h2>
-                        <p data-i18n="EXPENSE_RECORDS_DESCRIPTION" 
-                        class="text-gray-500 dark:text-gray-400 mb-4">
-                            查看已提交的費用申請狀態
-                        </p>
-                        
-                        <!-- Tab 切換 -->
-                        <div class="flex space-x-2 mb-4">
-                            <button id="tab-advance-records" 
-                                    class="px-4 py-2 rounded-lg font-semibold text-sm bg-indigo-600 text-white">
-                                預支申請
-                            </button>
-                            <button id="tab-reimbursement-records" 
-                                    class="px-4 py-2 rounded-lg font-semibold text-sm bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                                報銷申請
-                            </button>
                         </div>
                         
-                        <div id="expense-records-container">
-                            <!-- 預支記錄 -->
-                            <div id="advance-records-list">
-                                <div id="advance-records-loading" 
-                                    data-i18n="RECORDS_LOADING" 
-                                    class="text-center text-gray-500 dark:text-gray-400 py-4">
-                                    正在載入記錄...
-                                </div>
-                                <div id="advance-records-empty" 
-                                    class="text-center text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg" 
-                                    style="display: none;">
-                                    <p data-i18n="ADVANCE_NO_RECORDS" class="font-semibold">
-                                        目前沒有預支申請記錄
-                                    </p>
-                                </div>
-                                <ul id="advance-records" class="space-y-3"></ul>
-                            </div>
+                        <!-- 📋 預支申請表單 -->
+                        <div class="card p-6">
+                            <h2 data-i18n="EXPENSE_ADVANCE_TITLE" 
+                                class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                                💰 預支申請
+                            </h2>
+                            <p data-i18n="EXPENSE_ADVANCE_DESCRIPTION" 
+                            class="text-gray-500 dark:text-gray-400 mb-4">
+                                填寫以下資訊以提交預支申請
+                            </p>
                             
-                            <!-- 報銷記錄 -->
-                            <div id="reimbursement-records-list" style="display: none;">
-                                <div id="reimbursement-records-loading" 
-                                    data-i18n="RECORDS_LOADING" 
-                                    class="text-center text-gray-500 dark:text-gray-400 py-4">
-                                    正在載入記錄...
+                            <div class="space-y-4">
+                                <!-- 申請日期 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_ADVANCE_DATE_LABEL" 
+                                        for="advance-date" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        申請日期
+                                    </label>
+                                    <input type="date" 
+                                        id="advance-date" 
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
                                 </div>
-                                <div id="reimbursement-records-empty" 
-                                    class="text-center text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg" 
-                                    style="display: none;">
-                                    <p data-i18n="REIMBURSEMENT_NO_RECORDS" class="font-semibold">
-                                        目前沒有報銷申請記錄
-                                    </p>
+                                
+                                <!-- 申請金額 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_ADVANCE_AMOUNT_LABEL" 
+                                        for="advance-amount" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        申請金額(元)
+                                    </label>
+                                    <input type="number" 
+                                        id="advance-amount" 
+                                        min="0"
+                                        step="1"
+                                        placeholder="0" 
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
                                 </div>
-                                <ul id="reimbursement-records" class="space-y-3"></ul>
+                                
+                                <!-- 申請用途 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_ADVANCE_PURPOSE_LABEL" 
+                                        for="advance-purpose" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        申請用途
+                                    </label>
+                                    <textarea id="advance-purpose" 
+                                            rows="3" 
+                                            placeholder="請說明申請用途..."
+                                            class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                                </div>
+                                
+                                <!-- 提交按鈕 -->
+                                <button id="submit-advance-btn" 
+                                        onclick="submitAdvanceApplication()"
+                                        data-i18n="BTN_SUBMIT_ADVANCE"
+                                        class="w-full py-3 px-4 rounded-lg font-bold btn-primary">
+                                    提交預支申請
+                                </button>
                             </div>
                         </div>
-                    </div>
+                        
+                        <!-- 📄 報銷申請表單 -->
+                        <div class="card p-6">
+                            <h2 data-i18n="EXPENSE_REIMBURSEMENT_TITLE" 
+                                class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                                📄 報銷申請
+                            </h2>
+                            <p data-i18n="EXPENSE_REIMBURSEMENT_DESCRIPTION" 
+                            class="text-gray-500 dark:text-gray-400 mb-4">
+                                上傳發票並填寫會計憑證資訊
+                            </p>
+                            
+                            <div class="space-y-4">
+                                <!-- 上傳發票照片 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_INVOICE_UPLOAD_LABEL" 
+                                        for="reimb-invoice-upload" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        上傳發票照片 <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="flex items-center space-x-3">
+                                        <input type="file" 
+                                            id="reimbursement-invoice-image" 
+                                            accept="image/*"
+                                            capture="environment"
+                                            class="hidden">
+                                        <button type="button"
+                                                onclick="document.getElementById('reimbursement-invoice-image').click()"
+                                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center space-x-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            <span data-i18n="BTN_TAKE_PHOTO">拍照上傳</span>
+                                        </button>
+                                        <span id="reimb-invoice-file-name" class="text-sm text-gray-500 dark:text-gray-400">
+                                            尚未選擇檔案
+                                        </span>
+                                    </div>
+                                    <!-- 預覽圖片 -->
+                                    <div id="reimb-invoice-preview" class="mt-3 hidden">
+                                        <img id="reimb-invoice-preview-img" 
+                                            src="" 
+                                            alt="發票預覽" 
+                                            class="max-w-full h-auto rounded-lg border border-gray-300 dark:border-gray-600">
+                                    </div>
+                                </div>
+                                
+                                <!-- 費用日期 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_DATE_LABEL" 
+                                        for="reimb-date" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        費用日期 <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="date" 
+                                        id="reimb-date" 
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                
+                                <!-- 費用摘要 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_SUMMARY_LABEL" 
+                                        for="reimb-summary" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        費用摘要 <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" 
+                                        id="reimb-summary" 
+                                        placeholder="例如：購買辦公用品、客戶餐費"
+                                        maxlength="100"
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                
+                                <!-- 報銷金額 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_AMOUNT_LABEL" 
+                                        for="reimb-amount" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        報銷金額（元）<span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="number" 
+                                        id="reimb-amount" 
+                                        min="0"
+                                        step="1"
+                                        placeholder="0" 
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                
+                                <!-- 發票號碼 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_INVOICE_NUMBER_LABEL" 
+                                        for="reimb-invoice-number" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        發票號碼
+                                    </label>
+                                    <input type="text" 
+                                        id="reimb-invoice-number" 
+                                        placeholder="例如：AA-12345678"
+                                        maxlength="20"
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                
+                                <!-- 備註 -->
+                                <div>
+                                    <label data-i18n="EXPENSE_NOTE_LABEL" 
+                                        for="reimb-note" 
+                                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        備註
+                                    </label>
+                                    <textarea id="reimb-note" 
+                                            rows="2" 
+                                            placeholder="其他補充說明..."
+                                            class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                                </div>
+                                
+                                <!-- 提交按鈕 -->
+                                <button id="submit-reimbursement-btn" 
+                                        onclick="submitReimbursementApplication()"
+                                        data-i18n="BTN_SUBMIT_REIMBURSEMENT"
+                                        class="w-full py-3 px-4 rounded-lg font-bold btn-primary">
+                                    生成憑證並送出
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 我的申請記錄 -->
+                        <div class="card p-6">
+                            <h2 data-i18n="EXPENSE_RECORDS_TITLE" 
+                                class="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                                我的申請記錄
+                            </h2>
+                            <p data-i18n="EXPENSE_RECORDS_DESCRIPTION" 
+                            class="text-gray-500 dark:text-gray-400 mb-4">
+                                查看已提交的費用申請狀態
+                            </p>
+                            
+                            <!-- Tab 切換 -->
+                            <div class="flex space-x-2 mb-4">
+                                <button id="tab-advance-records" 
+                                        class="px-4 py-2 rounded-lg font-semibold text-sm bg-indigo-600 text-white">
+                                    預支申請
+                                </button>
+                                <button id="tab-reimbursement-records" 
+                                        class="px-4 py-2 rounded-lg font-semibold text-sm bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                    報銷申請
+                                </button>
+                            </div>
+                            
+                            <div id="expense-records-container">
+                                <!-- 預支記錄 -->
+                                <div id="advance-records-list">
+                                    <div id="advance-records-loading" 
+                                        data-i18n="RECORDS_LOADING" 
+                                        class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                        正在載入記錄...
+                                    </div>
+                                    <div id="advance-records-empty" 
+                                        class="text-center text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg" 
+                                        style="display: none;">
+                                        <p data-i18n="ADVANCE_NO_RECORDS" class="font-semibold">
+                                            目前沒有預支申請記錄
+                                        </p>
+                                    </div>
+                                    <ul id="advance-records" class="space-y-3"></ul>
+                                </div>
+                                
+                                <!-- 報銷記錄 -->
+                                <div id="reimbursement-records-list" style="display: none;">
+                                    <div id="reimbursement-records-loading" 
+                                        data-i18n="RECORDS_LOADING" 
+                                        class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                        正在載入記錄...
+                                    </div>
+                                    <div id="reimbursement-records-empty" 
+                                        class="text-center text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg" 
+                                        style="display: none;">
+                                        <p data-i18n="REIMBURSEMENT_NO_RECORDS" class="font-semibold">
+                                            目前沒有報銷申請記錄
+                                        </p>
+                                    </div>
+                                    <ul id="reimbursement-records" class="space-y-3"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div> <!-- 結束 max-w-4xl mx-auto space-y-6 -->
+                </div> <!-- 結束 expense-view -->
                     
                 </section>
 
