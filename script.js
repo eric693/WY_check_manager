@@ -5632,9 +5632,10 @@ async function processInvoiceOCR(file) {
         const base64Data = await fileToBase64(file);
         console.log('✅ Base64 轉換完成，長度:', base64Data.length);
 
+        console.log('🌐 API URL:', API_CONFIG.apiUrl);
         // **改用 POST 請求**
         console.log('📤 發送 POST 請求到後端...');
-        const response = await fetch(API_URL, {
+        const response = await fetch(API_CONFIG.apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
