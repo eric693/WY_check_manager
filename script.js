@@ -5459,9 +5459,28 @@ async function deleteIPFromWhitelist(rowNumber, ipRange) {
     }
 }
 
-// ==================== 🧾 發票辨識功能 ====================
+// ==================== 🧾 發票辨識功能（完全修正版）====================
 
 let currentOCRData = null; // 儲存當前辨識結果
+
+/**
+ * ✅ 顯示 OCR 錯誤訊息
+ */
+function showOCRError(message) {
+    console.error('❌ OCR 錯誤:', message);
+    
+    const loadingEl = document.getElementById('ocr-loading');
+    const successEl = document.getElementById('ocr-success');
+    const errorEl = document.getElementById('ocr-error');
+    const errorMsgEl = document.getElementById('ocr-error-message');
+    
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (successEl) successEl.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'block';
+    if (errorMsgEl) errorMsgEl.textContent = message;
+    
+    showNotification(message, 'error');
+}
 
 /**
  * 處理發票上傳（拍照或檔案上傳）
@@ -5487,125 +5506,29 @@ async function handleInvoiceUpload(event, source) {
 }
 
 /**
- * 處理發票 OCR
+ * ✅ 處理發票 OCR（完全修正版）
  */
-// async function processInvoiceOCR(file) {
-//     console.log('═══════════════════════════════════════');
-//     console.log('🧾 開始處理發票辨識');
-//     console.log('═══════════════════════════════════════');
-    
-//     // 檢查檔案類型
-//     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-//     if (!allowedTypes.includes(file.type)) {
-//         showNotification('請上傳圖片檔案（JPG, PNG, GIF, WebP）', 'error');
-//         return;
-//     }
-    
-//     // 檢查檔案大小（限制 10MB）
-//     const maxSize = 10 * 1024 * 1024;
-//     if (file.size > maxSize) {
-//         showNotification(`圖片檔案不得超過 10MB（目前：${(file.size / 1024 / 1024).toFixed(2)}MB）`, 'error');
-//         return;
-//     }
-    
-//     try {
-//         // ✅ 修正：使用 HTML 中實際的元素 ID
-//         const previewContainer = document.getElementById('invoice-preview-container');
-//         const previewImg = document.getElementById('invoice-preview');
-//         const loadingEl = document.getElementById('ocr-loading');           // ✅ 改為 ocr-loading
-//         const successEl = document.getElementById('ocr-success');           // ✅ 改為 ocr-success
-//         const errorEl = document.getElementById('ocr-error');               // ✅ 改為 ocr-error
-        
-//         console.log('✅ 元素檢查:');
-//         console.log('   previewContainer:', previewContainer ? '✓' : '✗');
-//         console.log('   previewImg:', previewImg ? '✓' : '✗');
-//         console.log('   loadingEl:', loadingEl ? '✓' : '✗');
-//         console.log('   successEl:', successEl ? '✓' : '✗');
-//         console.log('   errorEl:', errorEl ? '✓' : '✗');
-        
-//         // 顯示預覽
-//         if (previewContainer && previewImg) {
-//             const reader = new FileReader();
-//             reader.onload = (e) => {
-//                 previewImg.src = e.target.result;
-//                 previewContainer.classList.remove('hidden');
-//             };
-//             reader.readAsDataURL(file);
-//         }
-        
-//         // 顯示載入中
-//         if (loadingEl) loadingEl.classList.remove('hidden');
-//         if (successEl) successEl.classList.add('hidden');
-//         if (errorEl) errorEl.classList.add('hidden');
-        
-//         // 轉換為 Base64
-//         console.log('📤 轉換圖片為 Base64...');
-//         const base64Image = await fileToBase64(file);
-//         console.log('✅ 轉換完成，Base64 長度:', base64Image.length);
-        
-//         // 呼叫後端 API
-//         console.log('📡 發送 OCR 請求到後端...');
-//         const params = new URLSearchParams({
-//             imageData: base64Image,
-//             fileName: file.name
-//         });
-        
-//         const result = await callApifetch(`invoiceOCR&${params.toString()}`);
-        
-//         console.log('📤 收到 API 回應:', result);
-        
-//         if (loadingEl) loadingEl.classList.add('hidden');
-        
-//         if (result.ok && result.data) {
-//             console.log('✅ 辨識成功！');
-//             currentOCRData = result.data;
-//             displayOCRResult(result.data);
-//             if (successEl) successEl.classList.remove('hidden');
-//             showNotification('✅ 發票辨識成功！', 'success');
-//         } else {
-//             console.error('❌ 辨識失敗:', result.msg);
-//             const errorMsg = document.getElementById('ocr-error-message');
-//             if (errorMsg) {
-//                 errorMsg.textContent = result.msg || '辨識失敗，請確保圖片清晰且為台灣發票格式';
-//             }
-//             if (errorEl) errorEl.classList.remove('hidden');
-//             showNotification('辨識失敗', 'error');
-//         }
-        
-//     } catch (error) {
-//         console.error('❌❌❌ 發生錯誤:', error);
-        
-//         const loadingEl = document.getElementById('ocr-loading');
-//         const errorEl = document.getElementById('ocr-error');
-//         const errorMsg = document.getElementById('ocr-error-message');
-        
-//         if (loadingEl) loadingEl.classList.add('hidden');
-//         if (errorMsg) errorMsg.textContent = '系統錯誤：' + error.message;
-//         if (errorEl) errorEl.classList.remove('hidden');
-        
-//         showNotification('辨識失敗，請稍後再試', 'error');
-//     }
-    
-//     console.log('═══════════════════════════════════════');
-// }
-
 async function processInvoiceOCR(file) {
-    console.log('開始處理發票 OCR，檔案:', file.name);
+    console.log('═══════════════════════════════════════');
+    console.log('🧾 開始處理發票 OCR');
+    console.log('   檔案:', file.name);
+    console.log('   大小:', (file.size / 1024).toFixed(2), 'KB');
+    console.log('═══════════════════════════════════════');
     
-    // 驗證檔案類型
+    // ⭐ 步驟 1：驗證檔案類型
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
         showOCRError('請上傳有效的圖片檔案 (JPG, PNG, GIF, WebP)');
         return;
     }
 
-    // 檢查檔案大小 (限制 10MB)
+    // ⭐ 步驟 2：檢查檔案大小 (限制 10MB)
     if (file.size > 10 * 1024 * 1024) {
         showOCRError('檔案大小不能超過 10MB');
         return;
     }
 
-    // 顯示載入中
+    // ⭐ 步驟 3：顯示載入中
     const loadingEl = document.getElementById('ocr-loading');
     const successEl = document.getElementById('ocr-success');
     const errorEl = document.getElementById('ocr-error');
@@ -5614,7 +5537,7 @@ async function processInvoiceOCR(file) {
     if (successEl) successEl.style.display = 'none';
     if (errorEl) errorEl.style.display = 'none';
 
-    // 顯示圖片預覽
+    // ⭐ 步驟 4：顯示圖片預覽
     const previewContainer = document.getElementById('invoice-preview-container');
     const previewImg = document.getElementById('invoice-preview');
     if (previewContainer && previewImg) {
@@ -5627,14 +5550,24 @@ async function processInvoiceOCR(file) {
     }
 
     try {
+        // ⭐ 步驟 5：轉換為 Base64
         console.log('🔄 開始轉換圖片為 Base64...');
-        // 轉換為 Base64
         const base64Data = await fileToBase64(file);
         console.log('✅ Base64 轉換完成，長度:', base64Data.length);
 
+        // ⭐⭐⭐ 步驟 6：取得 Session Token
+        const sessionToken = localStorage.getItem('sessionToken');
+        
+        if (!sessionToken) {
+            throw new Error('請先登入');
+        }
+        
+        console.log('✅ Token 驗證通過');
+
+        // ⭐ 步驟 7：發送 POST 請求到後端
         console.log('🌐 API URL:', API_CONFIG.apiUrl);
-        // **改用 POST 請求**
-        console.log('📤 發送 POST 請求到後端...');
+        console.log('📤 發送 POST 請求...');
+        
         const response = await fetch(API_CONFIG.apiUrl, {
             method: 'POST',
             headers: {
@@ -5644,7 +5577,7 @@ async function processInvoiceOCR(file) {
                 action: 'invoiceOCR',
                 imageData: base64Data,
                 fileName: file.name,
-                token: currentUser.token
+                token: sessionToken  // ⭐⭐⭐ 修正：使用 localStorage 中的 token
             })
         });
 
@@ -5653,14 +5586,19 @@ async function processInvoiceOCR(file) {
         }
 
         const result = await response.json();
-        console.log('✅ 收到後端回應:', result);
+        console.log('📤 收到後端回應:', result);
 
-        if (result.success) {
+        // ⭐ 步驟 8：處理回應
+        if (result.ok && result.data) {  // ⭐⭐⭐ 修正：改用 result.ok
+            console.log('✅ OCR 辨識成功！');
+            
             // 儲存 OCR 結果
             currentOCRData = result.data;
             
-            // 顯示成功訊息和結果
+            // 隱藏載入中
             if (loadingEl) loadingEl.style.display = 'none';
+            
+            // 顯示成功訊息
             if (successEl) {
                 successEl.style.display = 'block';
                 
@@ -5668,7 +5606,7 @@ async function processInvoiceOCR(file) {
                 const fields = {
                     'ocr-invoice-number': result.data.invoiceNumber || '-',
                     'ocr-date': result.data.date || '-',
-                    'ocr-amount': result.data.amount ? `NT$ ${result.data.amount}` : '-',
+                    'ocr-amount': result.data.amount ? `NT$ ${parseInt(result.data.amount).toLocaleString()}` : '-',
                     'ocr-store': result.data.storeName || '-'
                 };
                 
@@ -5678,15 +5616,21 @@ async function processInvoiceOCR(file) {
                 }
             }
             
+            showNotification('✅ 發票辨識成功！', 'success');
             console.log('✅ OCR 處理完成');
+            console.log('═══════════════════════════════════════');
+            
         } else {
-            throw new Error(result.message || 'OCR 處理失敗');
+            throw new Error(result.msg || 'OCR 處理失敗');
         }
+        
     } catch (error) {
         console.error('❌❌❌ 發生錯誤:', error);
         showOCRError(error.message || '處理圖片時發生錯誤');
         
         if (loadingEl) loadingEl.style.display = 'none';
+        
+        console.log('═══════════════════════════════════════');
     }
 }
 
@@ -5780,14 +5724,14 @@ function resetInvoiceOCR() {
     currentOCRData = null;
     
     const previewContainer = document.getElementById('invoice-preview-container');
-    const loadingEl = document.getElementById('ocr-loading');           // ✅ 改為 ocr-loading
-    const successEl = document.getElementById('ocr-success');           // ✅ 改為 ocr-success
-    const errorEl = document.getElementById('ocr-error');               // ✅ 改為 ocr-error
+    const loadingEl = document.getElementById('ocr-loading');
+    const successEl = document.getElementById('ocr-success');
+    const errorEl = document.getElementById('ocr-error');
     
     if (previewContainer) previewContainer.classList.add('hidden');
-    if (loadingEl) loadingEl.classList.add('hidden');
-    if (successEl) successEl.classList.add('hidden');
-    if (errorEl) errorEl.classList.add('hidden');
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (successEl) successEl.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'none';
     
     // 清空檔案輸入
     const cameraInput = document.getElementById('invoice-camera-input');
