@@ -5785,3 +5785,23 @@ function resetInvoiceOCR() {
     
     console.log('✅ OCR 狀態已重置');
 }
+
+/**
+ * 切換 OCR 詳細資訊顯示
+ */
+function toggleOCRDetails() {
+    const detailsDiv = document.getElementById('ocr-details');
+    const toggleIcon = document.getElementById('ocr-details-toggle-icon');
+    
+    if (!detailsDiv || !toggleIcon) return;
+    
+    if (detailsDiv.classList.contains('hidden')) {
+        // 展開
+        detailsDiv.classList.remove('hidden');
+        toggleIcon.textContent = '▼';
+    } else {
+        // 收合
+        detailsDiv.classList.add('hidden');
+        toggleIcon.textContent = '▶';
+    }
+}
