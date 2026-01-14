@@ -5462,7 +5462,7 @@ async function deleteIPFromWhitelist(rowNumber, ipRange) {
 // ==================== 🧾 發票辨識功能（CORS 修正版）====================
 
 let currentOCRData = null; // 儲存當前辨識結果
-
+let currentInvoiceFile = null;
 /**
  * ✅ 顯示 OCR 錯誤訊息
  */
@@ -5483,7 +5483,7 @@ function showOCRError(message) {
 }
 
 /**
- * 處理發票上傳（拍照或檔案上傳）
+ * ⭐ 修改：處理發票上傳（儲存檔案）
  */
 async function handleInvoiceUpload(event, source) {
     console.log('📸 handleInvoiceUpload 觸發:', source);
@@ -5495,11 +5495,10 @@ async function handleInvoiceUpload(event, source) {
         return;
     }
     
-    console.log('📄 檔案資訊:');
-    console.log('   檔名:', file.name);
-    console.log('   大小:', (file.size / 1024).toFixed(2), 'KB');
-    console.log('   類型:', file.type);
-    console.log('   來源:', source === 'camera' ? '📷 拍照' : '📁 上傳');
+    // 關鍵：儲存檔案到全域變數
+    currentInvoiceFile = file;
+    
+    console.log('✅ 已儲存檔案到 currentInvoiceFile:', file.name);
     
     // 呼叫 OCR 處理
     await processInvoiceOCR(file);
@@ -5600,26 +5599,33 @@ async function processInvoiceOCR(file) {
         const result = await response.json();
         console.log('📤 收到後端回應:', result);
 
-        // ⭐ 步驟 8：處理回應
         if (result.ok && result.data) {
             console.log('✅ OCR 辨識成功！');
             
-            // 儲存 OCR 結果
+            // ⭐ 儲存完整的 OCR 結果
             currentOCRData = result.data;
             
             // 隱藏載入中
             if (loadingEl) loadingEl.style.display = 'none';
             
-            // 顯示成功訊息
+            // ⭐⭐⭐ 顯示所有辨識欄位
             if (successEl) {
                 successEl.style.display = 'block';
                 
-                // 顯示 OCR 結果
                 const fields = {
+                    // 主要資訊
                     'ocr-invoice-number': result.data.invoiceNumber || '-',
-                    'ocr-date': result.data.date || '-',
+                    'ocr-date': result.data.invoiceDate || '-',
+                    'ocr-time': result.data.invoiceTime || '-',
                     'ocr-amount': result.data.amount ? `NT$ ${parseInt(result.data.amount).toLocaleString()}` : '-',
-                    'ocr-store': result.data.storeName || '- '
+                    'ocr-store': result.data.storeName || '-',
+                    
+                    // 詳細資訊
+                    'ocr-period': result.data.period || '-',
+                    'ocr-random-code': result.data.randomCode || '-',
+                    'ocr-seller-tax-id': result.data.sellerTaxId || '-',
+                    'ocr-store-address': result.data.storeAddress || '-',
+                    'ocr-store-phone': result.data.storePhone || '-'
                 };
                 
                 for (const [id, value] of Object.entries(fields)) {
@@ -5629,9 +5635,6 @@ async function processInvoiceOCR(file) {
             }
             
             showNotification('✅ 發票辨識成功！', 'success');
-            console.log('✅ OCR 處理完成');
-            console.log('═══════════════════════════════════════');
-            
         } else {
             throw new Error(result.msg || 'OCR 處理失敗');
         }
@@ -5651,7 +5654,7 @@ async function processInvoiceOCR(file) {
 }
 
 /**
- * 填入報銷表單
+ * ⭐⭐⭐ 完全修正：填入報銷表單並自動上傳圖片
  */
 function fillReimbursementForm() {
     if (!currentOCRData) {
@@ -5659,58 +5662,105 @@ function fillReimbursementForm() {
         return;
     }
     
-    console.log('📝 開始填入報銷表單:', currentOCRData);
+    if (!currentInvoiceFile) {
+        showNotification('找不到發票圖片檔案', 'error');
+        return;
+    }
     
-    // 填入日期
-    if (currentOCRData.date) {
-        const dateInput = document.getElementById('reimbursement-date');
+    console.log('📝 開始填入報銷表單');
+    console.log('   OCR 資料:', currentOCRData);
+    console.log('   圖片檔案:', currentInvoiceFile.name);
+    
+    // 1. 填入費用日期
+    if (currentOCRData.invoiceDate) {
+        const dateInput = document.getElementById('reimb-date');
         if (dateInput) {
-            const datePart = currentOCRData.date.split(' ')[0];
-            dateInput.value = datePart;
-            console.log('  ✓ 已填入日期:', datePart);
+            dateInput.value = currentOCRData.invoiceDate;
+            console.log('  ✓ 已填入日期:', currentOCRData.invoiceDate);
         }
     }
     
-    // 填入費用摘要（店家名稱）
+    // 2. 填入費用摘要（店家名稱）
     if (currentOCRData.storeName) {
-        const summaryInput = document.getElementById('reimbursement-summary');
+        const summaryInput = document.getElementById('reimb-summary');
         if (summaryInput) {
             summaryInput.value = currentOCRData.storeName;
             console.log('  ✓ 已填入摘要:', currentOCRData.storeName);
         }
     }
     
-    // 填入金額
+    // 3. 填入金額
     if (currentOCRData.amount) {
-        const amountInput = document.getElementById('reimbursement-amount');
+        const amountInput = document.getElementById('reimb-amount');
         if (amountInput) {
-            amountInput.value = currentOCRData.amount;
-            console.log('  ✓ 已填入金額:', currentOCRData.amount);
+            // 清除非數字字元
+            const cleanAmount = String(currentOCRData.amount).replace(/[^0-9]/g, '');
+            amountInput.value = cleanAmount;
+            console.log('  ✓ 已填入金額:', cleanAmount);
         }
     }
     
-    // 填入發票號碼
+    // 4. 填入發票號碼
     if (currentOCRData.invoiceNumber) {
-        const invoiceNumberInput = document.getElementById('reimbursement-invoice-number');
+        const invoiceNumberInput = document.getElementById('reimb-invoice-number');
         if (invoiceNumberInput) {
             invoiceNumberInput.value = currentOCRData.invoiceNumber;
             console.log('  ✓ 已填入發票號碼:', currentOCRData.invoiceNumber);
         }
     }
     
-    // 捲動到表單區域
-    const reimbursementForm = document.querySelector('[data-i18n="EXPENSE_REIMBURSEMENT_TITLE"]');
-    if (reimbursementForm) {
-        const card = reimbursementForm.closest('.card');
+    // ⭐⭐⭐ 5. 自動上傳發票圖片到報銷表單
+    const fileInput = document.getElementById('reimbursement-invoice-image');
+    
+    if (fileInput && currentInvoiceFile) {
+        try {
+            // 使用 DataTransfer API 模擬檔案選擇
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(currentInvoiceFile);
+            fileInput.files = dataTransfer.files;
+            
+            // 觸發 change 事件以更新預覽
+            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            console.log('  ✓ 已自動上傳發票圖片');
+            
+            // 顯示檔案名稱
+            const fileNameEl = document.getElementById('reimb-invoice-file-name');
+            if (fileNameEl) {
+                fileNameEl.textContent = currentInvoiceFile.name;
+            }
+            
+            // 顯示預覽
+            const previewContainer = document.getElementById('reimb-invoice-preview');
+            const previewImg = document.getElementById('reimb-invoice-preview-img');
+            
+            if (previewContainer && previewImg) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(currentInvoiceFile);
+            }
+            
+        } catch (error) {
+            console.error('❌ 自動上傳圖片失敗:', error);
+            showNotification('圖片自動上傳失敗，請手動上傳', 'warning');
+        }
+    }
+    
+    // 6. 捲動到報銷表單區域
+    const reimbursementTitle = document.querySelector('[data-i18n="EXPENSE_REIMBURSEMENT_TITLE"]');
+    if (reimbursementTitle) {
+        const card = reimbursementTitle.closest('.card');
         if (card) {
             card.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
     
-    showNotification('✅ 已自動填入表單，請檢查並上傳發票照片', 'success');
+    showNotification('✅ 已自動填入表單並上傳發票圖片', 'success');
     console.log('✅ 表單填入完成');
 }
-
 /**
  * 重置 OCR 狀態
  */
@@ -5718,7 +5768,7 @@ function resetInvoiceOCR() {
     console.log('🔄 重置 OCR 狀態');
     
     currentOCRData = null;
-    
+    currentInvoiceFile = null; 
     const previewContainer = document.getElementById('invoice-preview-container');
     const loadingEl = document.getElementById('ocr-loading');
     const successEl = document.getElementById('ocr-success');
