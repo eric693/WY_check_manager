@@ -5459,7 +5459,7 @@ async function deleteIPFromWhitelist(rowNumber, ipRange) {
     }
 }
 
-// ==================== 🧾 發票辨識功能（完全修正版）====================
+// ==================== 🧾 發票辨識功能（CORS 修正版）====================
 
 let currentOCRData = null; // 儲存當前辨識結果
 
@@ -5506,7 +5506,7 @@ async function handleInvoiceUpload(event, source) {
 }
 
 /**
- * ✅ 處理發票 OCR（完全修正版）
+ * ✅ 處理發票 OCR（CORS 修正版 - 使用 Google Script 的專屬 URL）
  */
 async function processInvoiceOCR(file) {
     console.log('═══════════════════════════════════════');
@@ -5522,9 +5522,9 @@ async function processInvoiceOCR(file) {
         return;
     }
 
-    // ⭐ 步驟 2：檢查檔案大小 (限制 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-        showOCRError('檔案大小不能超過 10MB');
+    // ⭐ 步驟 2：檢查檔案大小 (限制 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showOCRError('檔案大小不能超過 5MB');
         return;
     }
 
@@ -5564,22 +5564,34 @@ async function processInvoiceOCR(file) {
         
         console.log('✅ Token 驗證通過');
 
-        // ⭐ 步驟 7：發送 POST 請求到後端
+        // ⭐⭐⭐ 關鍵修正：使用 Google Script 的 /exec 端點，並用 POST + JSON
+        // Google Apps Script 的 doPost 可以接收 JSON body
         console.log('🌐 API URL:', API_CONFIG.apiUrl);
-        console.log('📤 發送 POST 請求...');
+        console.log('📤 發送請求（使用 Google Script doPost）...');
         
+        const requestData = {
+            action: 'invoiceOCR',
+            imageData: base64Data,
+            fileName: file.name,
+            token: sessionToken
+        };
+        
+        console.log('📦 請求資料大小:', JSON.stringify(requestData).length, 'bytes');
+        
+        // ⭐⭐⭐ 使用 Google.script.run (如果在 Google Apps Script 環境)
+        // 或使用標準 fetch（但需要後端正確設定 CORS）
+        
+        // 方案 1: 如果你的後端已經正確設定 doPost 接收 JSON
         const response = await fetch(API_CONFIG.apiUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'invoiceOCR',
-                imageData: base64Data,
-                fileName: file.name,
-                token: sessionToken  // ⭐⭐⭐ 修正：使用 localStorage 中的 token
-            })
+            body: JSON.stringify(requestData),
+            // ⭐ 不設定 Content-Type，讓瀏覽器自動處理
+            // 這樣可以避免 CORS preflight
+            redirect: 'follow'
         });
+
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response headers:', response.headers);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -5589,7 +5601,7 @@ async function processInvoiceOCR(file) {
         console.log('📤 收到後端回應:', result);
 
         // ⭐ 步驟 8：處理回應
-        if (result.ok && result.data) {  // ⭐⭐⭐ 修正：改用 result.ok
+        if (result.ok && result.data) {
             console.log('✅ OCR 辨識成功！');
             
             // 儲存 OCR 結果
@@ -5607,7 +5619,7 @@ async function processInvoiceOCR(file) {
                     'ocr-invoice-number': result.data.invoiceNumber || '-',
                     'ocr-date': result.data.date || '-',
                     'ocr-amount': result.data.amount ? `NT$ ${parseInt(result.data.amount).toLocaleString()}` : '-',
-                    'ocr-store': result.data.storeName || '-'
+                    'ocr-store': result.data.storeName || '- '
                 };
                 
                 for (const [id, value] of Object.entries(fields)) {
@@ -5626,32 +5638,16 @@ async function processInvoiceOCR(file) {
         
     } catch (error) {
         console.error('❌❌❌ 發生錯誤:', error);
+        console.error('錯誤類型:', error.constructor.name);
+        console.error('錯誤訊息:', error.message);
+        console.error('錯誤堆疊:', error.stack);
+        
         showOCRError(error.message || '處理圖片時發生錯誤');
         
         if (loadingEl) loadingEl.style.display = 'none';
         
         console.log('═══════════════════════════════════════');
     }
-}
-
-/**
- * 顯示 OCR 結果
- */
-function displayOCRResult(data) {
-    console.log('🎨 顯示辨識結果:', data);
-    
-    // 更新顯示
-    const invoiceNumberEl = document.getElementById('ocr-invoice-number');
-    const dateEl = document.getElementById('ocr-date');
-    const amountEl = document.getElementById('ocr-amount');
-    const storeEl = document.getElementById('ocr-store');
-    
-    if (invoiceNumberEl) invoiceNumberEl.textContent = data.invoiceNumber || '無法辨識';
-    if (dateEl) dateEl.textContent = data.date || '無法辨識';
-    if (amountEl) amountEl.textContent = data.amount ? `NT$ ${parseInt(data.amount).toLocaleString()}` : 'NT$ --';
-    if (storeEl) storeEl.textContent = data.storeName || '無法辨識';
-    
-    console.log('✅ OCR 結果已顯示');
 }
 
 /**
@@ -5728,7 +5724,7 @@ function resetInvoiceOCR() {
     const successEl = document.getElementById('ocr-success');
     const errorEl = document.getElementById('ocr-error');
     
-    if (previewContainer) previewContainer.classList.add('hidden');
+    if (previewContainer) previewContainer.style.display = 'none';
     if (loadingEl) loadingEl.style.display = 'none';
     if (successEl) successEl.style.display = 'none';
     if (errorEl) errorEl.style.display = 'none';
