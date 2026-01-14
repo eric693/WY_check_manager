@@ -5597,42 +5597,63 @@ async function processInvoiceOCR(file) {
         const result = await response.json();
         console.log('📤 收到後端回應:', result);
 
+        // ⭐⭐⭐ 關鍵修正：處理嵌套的資料結構
+        let ocrData = null;
+
         if (result.ok && result.data) {
-            console.log('✅ OCR 辨識成功！');
-            
-            // ⭐ 儲存完整的 OCR 結果
-            currentOCRData = result.data;
-            
-            // 隱藏載入中
-            if (loadingEl) loadingEl.style.display = 'none';
-            
-            // ⭐⭐⭐ 顯示所有辨識欄位
-            if (successEl) {
-                successEl.style.display = 'block';
-                
-                const fields = {
-                    // 主要資訊
-                    'ocr-invoice-number': result.data.invoiceNumber || '-',
-                    'ocr-date': result.data.invoiceDate || '-',
-                    'ocr-time': result.data.invoiceTime || '-',
-                    'ocr-amount': result.data.amount ? `NT$ ${parseInt(result.data.amount).toLocaleString()}` : '-',
-                    'ocr-store': result.data.storeName || '-',
-                    
-                    // 詳細資訊
-                    'ocr-period': result.data.period || '-',
-                    'ocr-random-code': result.data.randomCode || '-',
-                    'ocr-seller-tax-id': result.data.sellerTaxId || '-',
-                    'ocr-store-address': result.data.storeAddress || '-',
-                    'ocr-store-phone': result.data.storePhone || '-'
-                };
-                
-                for (const [id, value] of Object.entries(fields)) {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = value;
-                }
+            // 檢查是否為嵌套結構
+            if (result.data.data && typeof result.data.data === 'object') {
+                ocrData = result.data.data; // 取得嵌套的真實資料
+                console.log('✅ 使用嵌套結構的 OCR 資料');
+            } else {
+                ocrData = result.data; // 使用第一層資料
+                console.log('✅ 使用第一層 OCR 資料');
             }
             
-            showNotification('✅ 發票辨識成功！', 'success');
+            console.log('📋 OCR 資料內容:', ocrData);
+            
+            if (ocrData) {
+                console.log('✅ OCR 辨識成功！');
+                
+                // ⭐ 儲存完整的 OCR 結果
+                currentOCRData = ocrData;
+                
+                // 隱藏載入中
+                if (loadingEl) loadingEl.style.display = 'none';
+                
+                // ⭐⭐⭐ 顯示所有辨識欄位
+                if (successEl) {
+                    successEl.style.display = 'block';
+                    
+                    const fields = {
+                        // 主要資訊
+                        'ocr-invoice-number': ocrData.invoiceNumber || '-',
+                        'ocr-date': ocrData.invoiceDate || '-',
+                        'ocr-time': ocrData.invoiceTime || '-',
+                        'ocr-amount': ocrData.amount ? `NT$ ${parseInt(ocrData.amount).toLocaleString()}` : '-',
+                        'ocr-store': ocrData.storeName || '-',
+                        
+                        // 詳細資訊
+                        'ocr-period': ocrData.period || '-',
+                        'ocr-random-code': ocrData.randomCode || '-',
+                        'ocr-seller-tax-id': ocrData.sellerTaxId || '-',
+                        'ocr-store-address': ocrData.storeAddress || '-',
+                        'ocr-store-phone': ocrData.storePhone || '-'
+                    };
+                    
+                    for (const [id, value] of Object.entries(fields)) {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.textContent = value;
+                            console.log(`  ✓ 已填入 ${id}: ${value}`);
+                        }
+                    }
+                }
+                
+                showNotification('✅ 發票辨識成功！', 'success');
+            } else {
+                throw new Error('OCR 資料格式錯誤');
+            }
         } else {
             throw new Error(result.msg || 'OCR 處理失敗');
         }
