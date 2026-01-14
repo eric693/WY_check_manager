@@ -5597,7 +5597,7 @@ async function processInvoiceOCR(file) {
         const result = await response.json();
         console.log('📤 收到後端回應:', result);
 
-        // ⭐⭐⭐ 關鍵修正：處理嵌套的資料結構
+        // 關鍵修正：處理嵌套的資料結構
         let ocrData = null;
 
         if (result.ok && result.data) {
@@ -5671,9 +5671,6 @@ async function processInvoiceOCR(file) {
     }
 }
 
-/**
- * ⭐⭐⭐ 完全修正：填入報銷表單並自動上傳圖片
- */
 function fillReimbursementForm() {
     if (!currentOCRData) {
         showNotification('沒有可用的辨識資料', 'error');
@@ -5689,9 +5686,10 @@ function fillReimbursementForm() {
     console.log('   OCR 資料:', currentOCRData);
     console.log('   圖片檔案:', currentInvoiceFile.name);
     
+    // ⭐⭐⭐ 修正：使用正確的 ID
     // 1. 填入費用日期
     if (currentOCRData.invoiceDate) {
-        const dateInput = document.getElementById('reimb-date');
+        const dateInput = document.getElementById('reimbursement-date'); // ✅ 修正
         if (dateInput) {
             dateInput.value = currentOCRData.invoiceDate;
             console.log('  ✓ 已填入日期:', currentOCRData.invoiceDate);
@@ -5700,7 +5698,7 @@ function fillReimbursementForm() {
     
     // 2. 填入費用摘要（店家名稱）
     if (currentOCRData.storeName) {
-        const summaryInput = document.getElementById('reimb-summary');
+        const summaryInput = document.getElementById('reimbursement-summary'); // ✅ 修正
         if (summaryInput) {
             summaryInput.value = currentOCRData.storeName;
             console.log('  ✓ 已填入摘要:', currentOCRData.storeName);
@@ -5709,9 +5707,8 @@ function fillReimbursementForm() {
     
     // 3. 填入金額
     if (currentOCRData.amount) {
-        const amountInput = document.getElementById('reimb-amount');
+        const amountInput = document.getElementById('reimbursement-amount'); // ✅ 修正
         if (amountInput) {
-            // 清除非數字字元
             const cleanAmount = String(currentOCRData.amount).replace(/[^0-9]/g, '');
             amountInput.value = cleanAmount;
             console.log('  ✓ 已填入金額:', cleanAmount);
@@ -5720,29 +5717,27 @@ function fillReimbursementForm() {
     
     // 4. 填入發票號碼
     if (currentOCRData.invoiceNumber) {
-        const invoiceNumberInput = document.getElementById('reimb-invoice-number');
+        const invoiceNumberInput = document.getElementById('reimbursement-invoice-number'); // ✅ 修正
         if (invoiceNumberInput) {
             invoiceNumberInput.value = currentOCRData.invoiceNumber;
             console.log('  ✓ 已填入發票號碼:', currentOCRData.invoiceNumber);
         }
     }
     
-    // ⭐⭐⭐ 5. 自動上傳發票圖片到報銷表單
+    // ⭐⭐⭐ 5. 自動上傳發票圖片到報銷表單（保持不變）
     const fileInput = document.getElementById('reimbursement-invoice-image');
     
     if (fileInput && currentInvoiceFile) {
         try {
-            // 使用 DataTransfer API 模擬檔案選擇
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(currentInvoiceFile);
             fileInput.files = dataTransfer.files;
             
-            // 觸發 change 事件以更新預覽
             fileInput.dispatchEvent(new Event('change', { bubbles: true }));
             
             console.log('  ✓ 已自動上傳發票圖片');
             
-            // 顯示檔案名稱
+            // 顯示檔案名稱（這個 ID 可以保持原樣）
             const fileNameEl = document.getElementById('reimb-invoice-file-name');
             if (fileNameEl) {
                 fileNameEl.textContent = currentInvoiceFile.name;
