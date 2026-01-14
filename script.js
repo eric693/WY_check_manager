@@ -4453,191 +4453,106 @@ async function submitAdvanceApplication() {
 }
 // ==================== 📄 報銷申請功能 ====================
 
-/**
- * ✅ 提交報銷申請（完全修正版）
- */
 async function submitReimbursementApplication() {
-    console.log('═══════════════════════════════════════');
-    console.log('📄 開始提交報銷申請');
-    console.log('═══════════════════════════════════════');
+    console.log('🚀 開始提交報銷申請...');
     
-    const submitBtn = document.getElementById('submit-reimbursement-btn');
-    
-    // 防止重複提交
-    if (submitBtn && submitBtn.disabled) {
+    const dateInput = document.getElementById('reimbursement-date');
+    const summaryInput = document.getElementById('reimbursement-summary');
+    const amountInput = document.getElementById('reimbursement-amount');
+    const invoiceNumberInput = document.getElementById('reimbursement-invoice-number');
+    const noteInput = document.getElementById('reimbursement-note');
+    const imageInput = document.getElementById('reimbursement-image');
+    const submitButton = document.getElementById('submit-reimbursement-btn');
+
+    // 禁用按鈕
+    if (submitButton) {
+        submitButton.disabled = true;
         console.log('⚠️ 按鈕已禁用，防止重複提交');
-        return;
     }
-    
+
     try {
-        // 設定按鈕為處理中
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '🔄 處理中...';
+        // 驗證必填欄位
+        if (!dateInput.value || !summaryInput.value || !amountInput.value) {
+            throw new Error('請填寫所有必填欄位');
         }
-        
-        // ⭐ 步驟 1：取得表單資料
-        const date = document.getElementById('reimbursement-date')?.value.trim();
-        const summary = document.getElementById('reimbursement-summary')?.value.trim();
-        const amount = document.getElementById('reimbursement-amount')?.value.trim();
-        const invoiceNumber = document.getElementById('reimbursement-invoice-number')?.value.trim();
-        const note = document.getElementById('reimbursement-note')?.value.trim();
-        const fileInput = document.getElementById('reimbursement-invoice-image');
-        
-        console.log('📋 表單資料:');
-        console.log('   日期:', date);
-        console.log('   摘要:', summary);
-        console.log('   金額:', amount);
-        console.log('   發票號碼:', invoiceNumber);
-        console.log('   備註:', note);
-        console.log('   檔案輸入元素:', fileInput ? '找到' : '❌ 找不到');
-        
-        // ⭐ 步驟 2：驗證必填欄位
-        if (!date) {
-            showNotification('請選擇費用日期', 'error');
-            return;
+
+        // 處理圖片
+        let base64Image = '';
+        if (imageInput.files && imageInput.files[0]) {
+            console.log('📸 開始讀取圖片...');
+            base64Image = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const result = e.target.result;
+                    console.log('✅ Base64 長度:', result.length);
+                    resolve(result);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(imageInput.files[0]);
+            });
+            console.log('✅ 圖片讀取完成');
         }
-        
-        if (!summary || summary.length < 2) {
-            showNotification('請填寫費用摘要（至少 2 個字）', 'error');
-            return;
-        }
-        
-        if (!amount || parseFloat(amount) <= 0) {
-            showNotification('請填寫有效的報銷金額', 'error');
-            return;
-        }
-        
-        // ⭐ 步驟 3：驗證圖片上傳
-        if (!fileInput) {
-            showNotification('系統錯誤：找不到圖片上傳元件', 'error');
-            return;
-        }
-        
-        if (!fileInput.files || fileInput.files.length === 0) {
-            showNotification('請上傳發票照片', 'error');
-            return;
-        }
-        
-        const file = fileInput.files[0];
-        
-        console.log('📷 檔案資訊:');
-        console.log('   檔名:', file.name);
-        console.log('   大小:', (file.size / 1024).toFixed(2), 'KB');
-        console.log('   類型:', file.type);
-        
-        // ⭐ 步驟 4：檢查檔案類型
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-        
-        if (!allowedTypes.includes(file.type)) {
-            showNotification('請上傳圖片檔案（JPG, PNG, GIF, WebP）', 'error');
-            return;
-        }
-        
-        // ⭐ 步驟 5：檢查檔案大小（限制 5MB）
-        const maxSize = 5 * 1024 * 1024;
-        
-        if (file.size > maxSize) {
-            showNotification(`圖片檔案不得超過 5MB（目前：${(file.size / 1024 / 1024).toFixed(2)}MB）`, 'error');
-            return;
-        }
-        
-        console.log('✅ 檔案驗證通過');
-        
-        // ⭐ 步驟 6：讀取圖片為 Base64
-        console.log('📤 開始讀取圖片...');
-        
-        const base64Image = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const dataURL = e.target.result;
-                const base64 = dataURL.split(',')[1];
-                
-                if (!base64) {
-                    reject(new Error('Base64 轉換失敗'));
-                    return;
-                }
-                
-                console.log('✅ Base64 長度:', base64.length);
-                resolve(base64);
-            };
-            
-            reader.onerror = function(error) {
-                console.error('❌ FileReader 錯誤:', error);
-                reject(error);
-            };
-            
-            reader.readAsDataURL(file);
-        });
-        
-        console.log('✅ 圖片讀取完成');
-        
-        // ⭐ 步驟 7：發送請求
+
         console.log('📡 準備發送 API 請求...');
-        
-        const sessionToken = localStorage.getItem('sessionToken');
-        const userId = localStorage.getItem('sessionUserId');
-        
-        const params = new URLSearchParams({
-            date: date,
-            summary: summary,
-            amount: amount,
-            invoiceNumber: invoiceNumber || '',
-            note: note || '',
-            invoiceImage: base64Image,
-            fileName: file.name,
-            userId: userId
+
+        // 🔴 改用 POST 請求
+        const response = await fetch(API_CONFIG.apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                action: 'submitReimbursement',
+                date: dateInput.value,
+                summary: summaryInput.value,
+                amount: amountInput.value,
+                invoiceNumber: invoiceNumberInput.value || '',
+                note: noteInput.value || '',
+                invoiceImage: base64Image,
+                userId: currentUser.userId,
+                userName: currentUser.name,
+                token: localStorage.getItem('sessionToken')
+            })
         });
-        
-        const result = await callApifetch(`submitReimbursement&${params.toString()}`);
-        
-        console.log('📤 API 回應:', result);
-        
-        // ⭐ 步驟 8：處理回應
-        if (result.ok) {
-            console.log('✅ 報銷申請成功！');
-            showNotification('報銷申請已送出，等待審核', 'success');
-            
-            // 重置表單
-            document.getElementById('reimbursement-date').value = '';
-            document.getElementById('reimbursement-summary').value = '';
-            document.getElementById('reimbursement-amount').value = '';
-            document.getElementById('reimbursement-invoice-number').value = '';
-            document.getElementById('reimbursement-note').value = '';
-            fileInput.value = '';
-            
-            // 清空檔案名稱顯示
-            const fileNameEl = document.getElementById('reimb-invoice-file-name');
-            if (fileNameEl) {
-                fileNameEl.textContent = '尚未選擇檔案';
-            }
-            
-            // 清空圖片預覽
-            const previewContainer = document.getElementById('reimb-invoice-preview');
-            if (previewContainer) {
-                previewContainer.classList.add('hidden');
-            }
-            
-            // 重新載入記錄
-            await loadReimbursementRecords();
-            
-        } else {
-            console.error('❌ 報銷申請失敗:', result.msg);
-            showNotification(result.msg || '提交失敗，請稍後再試', 'error');
+
+        console.log('📬 收到回應，狀態:', response.status);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
-        console.log('═══════════════════════════════════════');
-        
+
+        const result = await response.json();
+        console.log('✅ API 回應:', result);
+
+        if (result.success) {
+            showNotification('報銷申請已提交', 'success');
+            
+            // 清空表單
+            dateInput.value = '';
+            summaryInput.value = '';
+            amountInput.value = '';
+            invoiceNumberInput.value = '';
+            noteInput.value = '';
+            imageInput.value = '';
+            
+            // 關閉 Modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('reimbursementModal'));
+            if (modal) modal.hide();
+            
+            // 重新載入資料
+            await loadReimbursementHistory();
+        } else {
+            throw new Error(result.message || '提交失敗');
+        }
+
     } catch (error) {
         console.error('❌❌❌ 發生嚴重錯誤:', error);
-        showNotification('系統錯誤：' + error.message, 'error');
-        
+        showNotification('提交失敗: ' + error.message, 'error');
     } finally {
-        // 恢復按鈕狀態
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '生成憑證並送出';
+        // 重新啟用按鈕
+        if (submitButton) {
+            submitButton.disabled = false;
+            console.log('✅ 按鈕已重新啟用');
         }
     }
 }
