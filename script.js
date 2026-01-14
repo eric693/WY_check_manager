@@ -5576,9 +5576,7 @@ async function processInvoiceOCR(file) {
         };
         
         console.log('📦 請求資料大小:', JSON.stringify(requestData).length, 'bytes');
-        
-        // ⭐⭐⭐ 使用 Google.script.run (如果在 Google Apps Script 環境)
-        // 或使用標準 fetch（但需要後端正確設定 CORS）
+
         
         // 方案 1: 如果你的後端已經正確設定 doPost 接收 JSON
         const response = await fetch(API_CONFIG.apiUrl, {
@@ -5640,7 +5638,6 @@ async function processInvoiceOCR(file) {
         }
         
     } catch (error) {
-        console.error('❌❌❌ 發生錯誤:', error);
         console.error('錯誤類型:', error.constructor.name);
         console.error('錯誤訊息:', error.message);
         console.error('錯誤堆疊:', error.stack);
