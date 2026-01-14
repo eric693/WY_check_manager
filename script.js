@@ -4453,15 +4453,16 @@ async function submitAdvanceApplication() {
 }
 // ==================== 📄 報銷申請功能 ====================
 
+/**
+ * ✅ 修正版：提交報銷申請（使用 JSON）
+ */
 async function submitReimbursementApplication() {
     console.log('🚀 開始提交報銷申請...');
     
     const dateInput = document.getElementById('reimbursement-date');
     const summaryInput = document.getElementById('reimbursement-summary');
     const amountInput = document.getElementById('reimbursement-amount');
-    const invoiceNumberInput = document.getElementById('reimbursement-invoice-number');
     const noteInput = document.getElementById('reimbursement-note');
-    const imageInput = document.getElementById('reimbursement-image');
     const submitButton = document.getElementById('submit-reimbursement-btn');
 
     // 禁用按鈕
@@ -4471,51 +4472,71 @@ async function submitReimbursementApplication() {
     }
 
     try {
-        // 驗證必填欄位
+        // ⭐ 驗證必填欄位
         if (!dateInput.value || !summaryInput.value || !amountInput.value) {
             throw new Error('請填寫所有必填欄位');
         }
 
-        // 處理圖片
-        let base64Image = '';
-        if (imageInput.files && imageInput.files[0]) {
-            console.log('📸 開始讀取圖片...');
-            base64Image = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const result = e.target.result;
-                    console.log('✅ Base64 長度:', result.length);
-                    resolve(result);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(imageInput.files[0]);
-            });
-            console.log('✅ 圖片讀取完成');
+        // ⭐ 處理發票圖片（支援多張）
+        console.log('📸 開始處理發票圖片...');
+        
+        const invoices = [];
+        const fileInput = document.getElementById('reimbursement-invoice-image');
+        
+        if (fileInput.files && fileInput.files.length > 0) {
+            for (let i = 0; i < fileInput.files.length; i++) {
+                const file = fileInput.files[i];
+                console.log(`   處理第 ${i + 1} 張發票: ${file.name}`);
+                
+                // 壓縮圖片
+                const compressedBase64 = await compressImage(file, 1024, 0.7);
+                
+                invoices.push({
+                    fileName: file.name,
+                    imageData: compressedBase64,
+                    invoiceNumber: document.getElementById('reimbursement-invoice-number')?.value || '',
+                    date: dateInput.value,
+                    amount: amountInput.value,
+                    storeName: summaryInput.value
+                });
+            }
+            
+            console.log(`✅ 成功處理 ${invoices.length} 張發票`);
+        } else {
+            console.log('⚠️ 沒有選擇發票圖片');
         }
 
-        console.log('📡 準備發送 API 請求...');
+        // ⭐⭐⭐ 關鍵修正：使用 JSON 格式
+        console.log('📦 準備發送資料...');
+        
+        const requestData = {
+            action: 'submitReimbursement',
+            token: localStorage.getItem('sessionToken'),
+            date: dateInput.value,
+            summary: summaryInput.value,
+            amount: amountInput.value,
+            note: noteInput.value || '',
+            invoices: invoices  // ⭐ 發票陣列
+        };
+        
+        console.log('📋 請求資料:', {
+            action: requestData.action,
+            date: requestData.date,
+            summary: requestData.summary,
+            amount: requestData.amount,
+            invoiceCount: requestData.invoices.length
+        });
 
-        // 🔴 改用 POST 請求
+        // ⭐⭐⭐ 使用 JSON 格式發送
         const response = await fetch(API_CONFIG.apiUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',  // ✅ 改用 JSON
             },
-            body: new URLSearchParams({
-                action: 'submitReimbursement',
-                date: dateInput.value,
-                summary: summaryInput.value,
-                amount: amountInput.value,
-                invoiceNumber: invoiceNumberInput.value || '',
-                note: noteInput.value || '',
-                invoiceImage: base64Image,
-                userId: currentUser.userId,
-                userName: currentUser.name,
-                token: localStorage.getItem('sessionToken')
-            })
+            body: JSON.stringify(requestData)  // ✅ 序列化為 JSON
         });
 
-        console.log('📬 收到回應，狀態:', response.status);
+        console.log('📥 收到回應，狀態:', response.status);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -4524,25 +4545,30 @@ async function submitReimbursementApplication() {
         const result = await response.json();
         console.log('✅ API 回應:', result);
 
-        if (result.success) {
+        if (result.ok) {
             showNotification('報銷申請已提交', 'success');
             
             // 清空表單
             dateInput.value = '';
             summaryInput.value = '';
             amountInput.value = '';
-            invoiceNumberInput.value = '';
             noteInput.value = '';
-            imageInput.value = '';
+            fileInput.value = '';
             
-            // 關閉 Modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('reimbursementModal'));
-            if (modal) modal.hide();
+            if (document.getElementById('reimbursement-invoice-number')) {
+                document.getElementById('reimbursement-invoice-number').value = '';
+            }
+            
+            // 清空預覽
+            const previewContainer = document.getElementById('reimb-invoice-preview');
+            if (previewContainer) {
+                previewContainer.classList.add('hidden');
+            }
             
             // 重新載入資料
-            await loadReimbursementHistory();
+            await loadReimbursementRecords();
         } else {
-            throw new Error(result.message || '提交失敗');
+            throw new Error(result.msg || '提交失敗');
         }
 
     } catch (error) {
@@ -4556,7 +4582,6 @@ async function submitReimbursementApplication() {
         }
     }
 }
-
 /**
  * ⭐ 新增：圖片壓縮函數
  */
