@@ -4453,14 +4453,16 @@ async function submitAdvanceApplication() {
 }
 // ==================== 📄 報銷申請功能 ====================
 
-// ==================== 💰 費用管理系統 ====================
-
 // ⭐ 防止重複提交的全域變數
 let isSubmitting = false;
 
+/**
+ * ✅ 提交報銷申請（完整修正版）
+ */
 async function submitReimbursementApplication() {
   console.log('🔍 當前 isSubmitting 狀態:', isSubmitting);
   
+  // 防止重複提交
   if (isSubmitting) {
     console.log('⚠️ 正在提交中，請勿重複點擊');
     return;
@@ -4469,14 +4471,13 @@ async function submitReimbursementApplication() {
   console.log('✅ 開始處理提交');
   isSubmitting = true;
   
-  // ⭐⭐⭐ 關鍵修正：使用正確的 ID
-  const submitBtn = document.getElementById('submit-reimbursement-btn');  // ← 改這裡
+  // 取得按鈕
+  const submitBtn = document.getElementById('submit-reimbursement-btn');
   
   if (!submitBtn) {
     console.error('❌ 找不到提交按鈕');
-    console.log('   HTML 中的按鈕 ID: submit-reimbursement-btn');
-    console.log('   是否存在:', !!document.getElementById('submit-reimbursement-btn'));
     isSubmitting = false;
+    alert('系統錯誤：找不到提交按鈕');
     return;
   }
   
@@ -4490,28 +4491,57 @@ async function submitReimbursementApplication() {
   try {
     console.log('💰 開始提交報銷申請');
     
-    const summary = document.getElementById('reimbursement-summary').value.trim();
-    const amount = document.getElementById('reimbursement-amount').value.trim();
-    const date = document.getElementById('reimbursement-date').value;
+    // 取得表單資料
+    const summary = document.getElementById('reimbursement-summary')?.value.trim();
+    const amount = document.getElementById('reimbursement-amount')?.value.trim();
+    const date = document.getElementById('reimbursement-date')?.value;
     const invoiceNumber = document.getElementById('reimbursement-invoice-number')?.value.trim() || '';
     const note = document.getElementById('reimbursement-note')?.value.trim() || '';
     
+    // ⭐⭐⭐ 關鍵：取得 Token
     const token = sessionStorage.getItem('sToken');
     
     console.log('🔑 Token:', token ? token.substring(0, 20) + '...' : '❌ 缺少');
+    console.log('📋 表單資料:');
+    console.log('   摘要:', summary);
+    console.log('   金額:', amount);
+    console.log('   日期:', date);
     
+    // ⭐ 驗證必填欄位
     if (!summary || !amount || !date) {
-      showMessage('請填寫所有必填欄位', 'error');
+      const errorMsg = '請填寫所有必填欄位（日期、摘要、金額）';
+      console.error('❌', errorMsg);
+      
+      // 使用 alert 或 showMessage
+      if (typeof showMessage === 'function') {
+        showMessage(errorMsg, 'error');
+      } else {
+        alert(errorMsg);
+      }
       return;
     }
     
+    // ⭐ 驗證 Token
     if (!token) {
-      showMessage('未登入或 Session 已過期，請重新登入', 'error');
+      const errorMsg = '未登入或 Session 已過期，請重新登入';
+      console.error('❌', errorMsg);
+      
+      if (typeof showMessage === 'function') {
+        showMessage(errorMsg, 'error');
+      } else {
+        alert(errorMsg);
+      }
+      
+      // 跳轉到登入頁
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
       return;
     }
     
     console.log('📦 準備發送資料...');
     
+    // 組裝請求資料
     const requestData = {
       action: 'submitReimbursement',
       token: token,
@@ -4528,6 +4558,7 @@ async function submitReimbursementApplication() {
     console.log('   費用摘要:', summary);
     console.log('   報銷金額:', amount);
     
+    // 發送請求
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -4543,7 +4574,14 @@ async function submitReimbursementApplication() {
     console.log('✅ API 回應:', result);
     
     if (result.ok) {
-      showMessage('報銷申請已送出！', 'success');
+      const successMsg = '報銷申請已送出！';
+      console.log('✅', successMsg);
+      
+      if (typeof showMessage === 'function') {
+        showMessage(successMsg, 'success');
+      } else {
+        alert(successMsg);
+      }
       
       // 清空表單
       document.getElementById('reimbursement-summary').value = '';
@@ -4557,7 +4595,9 @@ async function submitReimbursementApplication() {
       }
       
       // 重新載入記錄
-      loadReimbursementRecords();
+      if (typeof loadReimbursementRecords === 'function') {
+        loadReimbursementRecords();
+      }
       
     } else {
       throw new Error(result.msg || '提交失敗');
@@ -4565,11 +4605,18 @@ async function submitReimbursementApplication() {
     
   } catch (error) {
     console.error('❌ 發生錯誤:', error);
-    showMessage('系統錯誤：' + error.message, 'error');
+    
+    const errorMsg = '系統錯誤：' + error.message;
+    
+    if (typeof showMessage === 'function') {
+      showMessage(errorMsg, 'error');
+    } else {
+      alert(errorMsg);
+    }
     
   } finally {
     // 恢復按鈕狀態
-    const currentBtn = document.getElementById('submit-reimbursement-btn');  // ← 改這裡
+    const currentBtn = document.getElementById('submit-reimbursement-btn');
     if (currentBtn) {
       currentBtn.disabled = false;
       currentBtn.textContent = originalText;
