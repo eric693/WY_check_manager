@@ -1138,7 +1138,88 @@
                                         maxlength="20"
                                         class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
                                 </div>
+                                
+                                <!-- ⭐⭐⭐ 新增：發票詳細資訊（對應 Google Sheets 欄位）-->
+                                <details class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                                    <summary class="cursor-pointer font-medium text-gray-700 dark:text-gray-300 mb-3 hover:text-indigo-600 dark:hover:text-indigo-400">
+                                        📋 發票詳細資訊（OCR 自動填入）
+                                    </summary>
+                                    
+                                    <div class="space-y-3">
+                                        <!-- 發票時間 (G 欄) -->
+                                        <div>
+                                            <label for="reimbursement-invoice-time"
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                發票時間
+                                            </label>
+                                            <input type="time" 
+                                                id="reimbursement-invoice-time" 
+                                                class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                        </div>
 
+                                        <!-- 店家地址（如果需要） -->
+                                        <div>
+                                            <label for="reimbursement-store-address"
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                店家地址
+                                            </label>
+                                            <input type="text" 
+                                                id="reimbursement-store-address" 
+                                                placeholder="OCR 自動辨識"
+                                                class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                        </div>
+
+                                        <!-- 店家電話（如果需要） -->
+                                        <div>
+                                            <label for="reimbursement-store-phone"
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                店家電話
+                                            </label>
+                                            <input type="tel" 
+                                                id="reimbursement-store-phone" 
+                                                placeholder="OCR 自動辨識"
+                                                class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                        </div>
+
+                                        <!-- 賣方統編 (J 欄) -->
+                                        <div>
+                                            <label for="reimbursement-seller-tax-id"
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                賣方統編
+                                            </label>
+                                            <input type="text" 
+                                                id="reimbursement-seller-tax-id" 
+                                                maxlength="8"
+                                                placeholder="8 位數字"
+                                                class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                        </div>
+
+                                        <!-- 隨機碼 (K 欄) -->
+                                        <div>
+                                            <label for="reimbursement-random-code"
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                隨機碼
+                                            </label>
+                                            <input type="text" 
+                                                id="reimbursement-random-code" 
+                                                maxlength="4"
+                                                placeholder="4 位數字"
+                                                class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                        </div>
+
+                                        <!-- 期別 (L 欄) -->
+                                        <div>
+                                            <label for="reimbursement-period"
+                                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                期別
+                                            </label>
+                                            <input type="text" 
+                                                id="reimbursement-period" 
+                                                placeholder="例如：11312"
+                                                class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500">
+                                        </div>
+                                    </div>
+                                </details>
                                 <!-- 備註 -->
                                 <div>
                                     <label data-i18n="EXPENSE_NOTE_LABEL" 

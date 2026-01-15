@@ -5657,8 +5657,7 @@ async function processInvoiceOCR(file) {
 }
 
 /**
- * ⭐ 保留：fillReimbursementForm() 函數（OCR 自動填表功能）
- * 這個函數只負責將 OCR 辨識的資料填入表單，不涉及上傳
+ * ✅ 將 OCR 辨識的資料填入報銷表單（完整版 - 12 欄位）
  */
 function fillReimbursementForm() {
     if (!currentOCRData) {
@@ -5666,8 +5665,10 @@ function fillReimbursementForm() {
         return;
     }
     
-    console.log('📝 開始填入報銷表單');
+    console.log('📝 開始填入報銷表單（12 欄位版）');
     console.log('   OCR 資料:', currentOCRData);
+    
+    // ========== 基本資訊 (4 欄位) ==========
     
     // 1. 填入費用日期
     if (currentOCRData.invoiceDate) {
@@ -5706,7 +5707,65 @@ function fillReimbursementForm() {
         }
     }
     
-    // 5. 捲動到報銷表單區域
+    // ========== ⭐ 新增欄位 (8 欄位) ==========
+    
+    // 5. 發票時間（如果有對應的輸入框）
+    if (currentOCRData.invoiceTime) {
+        const timeInput = document.getElementById('reimbursement-invoice-time');
+        if (timeInput) {
+            timeInput.value = currentOCRData.invoiceTime;
+            console.log('  ✓ 已填入發票時間:', currentOCRData.invoiceTime);
+        }
+    }
+    
+    // 6. 店家地址（如果有對應的輸入框）
+    if (currentOCRData.storeAddress) {
+        const addressInput = document.getElementById('reimbursement-store-address');
+        if (addressInput) {
+            addressInput.value = currentOCRData.storeAddress;
+            console.log('  ✓ 已填入店家地址:', currentOCRData.storeAddress);
+        }
+    }
+    
+    // 7. 店家電話（如果有對應的輸入框）
+    if (currentOCRData.storePhone) {
+        const phoneInput = document.getElementById('reimbursement-store-phone');
+        if (phoneInput) {
+            phoneInput.value = currentOCRData.storePhone;
+            console.log('  ✓ 已填入店家電話:', currentOCRData.storePhone);
+        }
+    }
+    
+    // 8. 賣方統編（如果有對應的輸入框）
+    if (currentOCRData.sellerTaxId) {
+        const taxIdInput = document.getElementById('reimbursement-seller-tax-id');
+        if (taxIdInput) {
+            taxIdInput.value = currentOCRData.sellerTaxId;
+            console.log('  ✓ 已填入賣方統編:', currentOCRData.sellerTaxId);
+        }
+    }
+    
+    // 9. 隨機碼（如果有對應的輸入框）
+    if (currentOCRData.randomCode) {
+        const randomCodeInput = document.getElementById('reimbursement-random-code');
+        if (randomCodeInput) {
+            randomCodeInput.value = currentOCRData.randomCode;
+            console.log('  ✓ 已填入隨機碼:', currentOCRData.randomCode);
+        }
+    }
+    
+    // 10. 期別（如果有對應的輸入框）
+    if (currentOCRData.period) {
+        const periodInput = document.getElementById('reimbursement-period');
+        if (periodInput) {
+            periodInput.value = currentOCRData.period;
+            console.log('  ✓ 已填入期別:', currentOCRData.period);
+        }
+    }
+    
+    // ========== 完成處理 ==========
+    
+    // 捲動到報銷表單區域
     const reimbursementTitle = document.querySelector('[data-i18n="EXPENSE_REIMBURSEMENT_TITLE"]');
     if (reimbursementTitle) {
         const card = reimbursementTitle.closest('.card');
@@ -5716,7 +5775,7 @@ function fillReimbursementForm() {
     }
     
     showNotification('✅ 已自動填入表單（發票資訊僅供參考）', 'success');
-    console.log('✅ 表單填入完成');
+    console.log('✅ 表單填入完成（12 欄位）');
 }
 /**
  * 重置 OCR 狀態
