@@ -4453,115 +4453,129 @@ async function submitAdvanceApplication() {
 }
 // ==================== 📄 報銷申請功能 ====================
 
+// ⭐ 防止重複提交的全域變數
 let isSubmitting = false;
+
 async function submitReimbursementApplication() {
-    // 防止重複提交
-    if (isSubmitting) {
-      console.log('⚠️ 正在提交中，請勿重複點擊');
+  // 防止重複提交
+  if (isSubmitting) {
+    console.log('⚠️ 正在提交中，請勿重複點擊');
+    return;
+  }
+  
+  isSubmitting = true;
+  
+  // ⭐⭐⭐ 使用明確的 ID 選取按鈕
+  const submitBtn = document.getElementById('submit-reimb-btn');
+  
+  // ⭐ 加入安全檢查
+  if (!submitBtn) {
+    console.error('❌ 找不到提交按鈕');
+    isSubmitting = false;
+    return;
+  }
+  
+  const originalText = submitBtn.textContent;
+  
+  submitBtn.disabled = true;
+  submitBtn.textContent = '提交中...';
+  
+  try {
+    console.log('💰 開始提交報銷申請');
+    
+    const summary = document.getElementById('reimb-summary').value.trim();
+    const amount = document.getElementById('reimb-amount').value.trim();
+    const date = document.getElementById('reimb-date').value;
+    const invoiceNumber = document.getElementById('reimb-invoice-number')?.value.trim() || '';
+    const note = document.getElementById('reimb-note')?.value.trim() || '';
+    
+    // 取得 token
+    const token = sessionStorage.getItem('sToken');
+    
+    console.log('🔑 Token:', token ? token.substring(0, 20) + '...' : '❌ 缺少');
+    
+    // 驗證必填欄位
+    if (!summary || !amount || !date) {
+      showMessage('請填寫所有必填欄位', 'error');
       return;
     }
     
-    isSubmitting = true;
+    if (!token) {
+      showMessage('未登入或 Session 已過期，請重新登入', 'error');
+      return;
+    }
     
-    const submitBtn = document.querySelector('#reimbursement-modal .btn-primary');
-    const originalText = submitBtn.textContent;
+    console.log('📦 準備發送資料（不含發票圖片）...');
     
-    submitBtn.disabled = true;
-    submitBtn.textContent = '提交中...';
+    // 組裝請求資料
+    const requestData = {
+      action: 'submitReimbursement',
+      token: token,
+      date: date,
+      summary: summary,
+      amount: amount,
+      invoiceNumber: invoiceNumber,
+      note: note
+    };
     
-    try {
-      console.log('💰 開始提交報銷申請');
+    console.log('📤 發送請求...');
+    console.log('   Token:', token.substring(0, 20) + '...');
+    console.log('   費用日期:', date);
+    console.log('   費用摘要:', summary);
+    console.log('   報銷金額:', amount);
+    
+    // 發送請求
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+    
+    console.log('📥 收到回應，狀態:', response.status);
+    
+    const result = await response.json();
+    
+    console.log('✅ API 回應:', result);
+    
+    if (result.ok) {
+      showMessage('報銷申請已送出！', 'success');
+      closeModal('reimbursement-modal');
       
-      const summary = document.getElementById('reimb-summary').value.trim();
-      const amount = document.getElementById('reimb-amount').value.trim();
-      const date = document.getElementById('reimb-date').value;
-      const invoiceNumber = document.getElementById('reimb-invoice-number')?.value.trim() || '';
-      const note = document.getElementById('reimb-note')?.value.trim() || '';
-      
-      // ⭐⭐⭐ 關鍵：取得 token
-      const token = sessionStorage.getItem('sToken');
-      
-      console.log('🔑 Token:', token ? token.substring(0, 20) + '...' : '❌ 缺少');
-      
-      // 驗證必填欄位
-      if (!summary || !amount || !date) {
-        showMessage('請填寫所有必填欄位', 'error');
-        return;
+      // 清空表單
+      document.getElementById('reimb-summary').value = '';
+      document.getElementById('reimb-amount').value = '';
+      document.getElementById('reimb-date').value = '';
+      if (document.getElementById('reimb-invoice-number')) {
+        document.getElementById('reimb-invoice-number').value = '';
+      }
+      if (document.getElementById('reimb-note')) {
+        document.getElementById('reimb-note').value = '';
       }
       
-      if (!token) {
-        showMessage('未登入或 Session 已過期，請重新登入', 'error');
-        return;
-      }
+      // 重新載入記錄
+      loadReimbursementRecords();
       
-      console.log('📦 準備發送資料（不含發票圖片）...');
-      
-      // ⭐⭐⭐ 關鍵：確保 token 在 requestData 中
-      const requestData = {
-        action: 'submitReimbursement',
-        token: token,  // ⭐ 確保這行存在
-        date: date,
-        summary: summary,
-        amount: amount,
-        invoiceNumber: invoiceNumber,
-        note: note
-      };
-      
-      console.log('📤 發送請求...');
-      console.log('   Token:', token.substring(0, 20) + '...');
-      console.log('   費用日期:', date);
-      console.log('   費用摘要:', summary);
-      console.log('   報銷金額:', amount);
-      
-      // 發送請求
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
-      
-      console.log('📥 收到回應，狀態:', response.status);
-      
-      const result = await response.json();
-      
-      console.log('✅ API 回應:', result);
-      
-      if (result.ok) {
-        showMessage('報銷申請已送出！', 'success');
-        closeModal('reimbursement-modal');
-        
-        // 清空表單
-        document.getElementById('reimb-summary').value = '';
-        document.getElementById('reimb-amount').value = '';
-        document.getElementById('reimb-date').value = '';
-        if (document.getElementById('reimb-invoice-number')) {
-          document.getElementById('reimb-invoice-number').value = '';
-        }
-        if (document.getElementById('reimb-note')) {
-          document.getElementById('reimb-note').value = '';
-        }
-        
-        // 重新載入記錄
-        loadReimbursementRecords();
-        
-      } else {
-        throw new Error(result.msg || '提交失敗');
-      }
-      
-    } catch (error) {
-      console.error('❌ 發生錯誤:', error);
-      showMessage('系統錯誤：' + error.message, 'error');
-      
-    } finally {
-      // 恢復按鈕狀態
-      isSubmitting = false;
+    } else {
+      throw new Error(result.msg || '提交失敗');
+    }
+    
+  } catch (error) {
+    console.error('❌ 發生錯誤:', error);
+    showMessage('系統錯誤：' + error.message, 'error');
+    
+  } finally {
+    // 恢復按鈕狀態（加入安全檢查）
+    if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;
-      console.log('✅ 按鈕已重新啟用');
     }
+    
+    isSubmitting = false;
+    console.log('✅ 按鈕已重新啟用');
   }
+}
 /**
  * ⭐ 新增：圖片壓縮函數
  */
