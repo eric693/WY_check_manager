@@ -19,48 +19,227 @@ const OVERTIME_RATES = {
 };
 
 /**
- * ✅ 判斷日期是平日/休息日/例假日
- * @param {string} dateStr - 日期字串 (YYYY-MM-DD)
- * @returns {string} 'weekday' | 'restday' | 'holiday'
+ * ✅ 改進版：區分國定假日和例假日
  */
 function getDateType(dateStr) {
   try {
     const date = new Date(dateStr);
-    const dayOfWeek = date.getDay(); // 0=週日, 1=週一, ..., 6=週六
+    const dayOfWeek = date.getDay();
     
-    // 週日 = 例假日
-    if (dayOfWeek === 0) {
-      return 'holiday';
+    // ⭐ 優先檢查國定假日
+    if (isNationalHoliday(dateStr)) {
+      return 'national_holiday'; // 國定假日（可加班，×2.0）
     }
     
-    // 週六 = 休息日
+    // 週日 = 例假日（勞基法規定不得出勤）
+    if (dayOfWeek === 0) {
+      return 'rest_day_sunday'; // 例假日（原則上不加班）
+    }
+    
+    // 週六 = 休息日（可加班）
     if (dayOfWeek === 6) {
       return 'restday';
     }
-    
-    // ⭐ TODO: 可以再加上國定假日判斷
-    // 例如：if (isNationalHoliday(dateStr)) return 'holiday';
     
     // 週一~週五 = 平日
     return 'weekday';
     
   } catch (error) {
     Logger.log('❌ 判斷日期類型失敗: ' + error);
-    return 'weekday'; // 預設為平日
+    return 'weekday';
   }
+}
+/**
+ * ✅ 判斷是否為國定假日（完整版 - 含特定行業適用）
+ * 
+ * @param {string} dateStr - 日期字串 (YYYY-MM-DD)
+ * @param {string} employeeType - 員工類型（可選）
+ * @returns {boolean} 是否為國定假日
+ */
+function isNationalHoliday(dateStr, employeeType) {
+  // ⭐ 2026年國定假日列表（勞工適用）
+  const holidays2026 = [
+    // 元旦
+    '2026-01-01',
+    
+    // 春節（農曆除夕及初一至初三）
+    '2026-02-16', // 農曆除夕前一日（彈性放假）
+    '2026-02-17', // 農曆除夕
+    '2026-02-18', // 初一
+    '2026-02-19', // 初二
+    '2026-02-20', // 初三
+    
+    // 和平紀念日
+    '2026-02-28',
+    
+    // 兒童節、清明節
+    '2026-04-03', // 兒童節前一日（彈性放假）
+    '2026-04-04', // 兒童節
+    '2026-04-05', // 清明節
+    
+    // 端午節
+    '2026-06-19',
+    
+    // 中秋節
+    '2026-09-25',
+    
+    // 國慶日
+    '2026-10-09', // 國慶日補假
+    '2026-10-10'  // 國慶日
+  ];
+  
+  // ⭐ 特定行業國定假日（勞工專屬）
+  const laborOnlyHolidays2026 = [
+    '2026-05-01', // 勞動節（僅勞工適用）
+    '2026-09-28', // 教師節（僅教師適用，但部分企業也放假）
+    '2026-10-25', // 光復節（勞工專屬）
+    '2026-12-25'  // 行憲紀念日（勞工專屬）
+  ];
+  
+  // 1. 檢查一般國定假日
+  if (holidays2026.includes(dateStr)) {
+    return true;
+  }
+  
+  // 2. 檢查勞工專屬假日
+  if (laborOnlyHolidays2026.includes(dateStr)) {
+    // 如果有指定員工類型，判斷是否適用
+    if (employeeType) {
+      // 教師節只有教師和部分企業適用
+      if (dateStr === '2026-09-28') {
+        return ['教師', '正職', '約聘'].includes(employeeType);
+      }
+      
+      // 光復節、行憲紀念日只有勞工適用
+      return ['正職', '兼職', '約聘'].includes(employeeType);
+    }
+    
+    // 未指定員工類型時，預設為勞工適用
+    return true;
+  }
+  
+  return false;
 }
 
 /**
- * ✅ 計算加班費（根據日期類型）
- * @param {number} hours - 加班時數
- * @param {number} hourlyRate - 時薪
- * @param {string} dateType - 日期類型
- * @returns {Object} { firstPay, secondPay, thirdPay }
+ * ✅ 取得該月份的所有國定假日
+ * 
+ * @param {string} yearMonth - 年月 (YYYY-MM)
+ * @param {string} employeeType - 員工類型（可選）
+ * @returns {Array} 國定假日陣列
  */
+function getNationalHolidaysInMonth(yearMonth, employeeType) {
+  const holidays = [];
+  const [year, month] = yearMonth.split('-');
+  const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${yearMonth}-${String(day).padStart(2, '0')}`;
+    
+    if (isNationalHoliday(dateStr, employeeType)) {
+      holidays.push(dateStr);
+    }
+  }
+  
+  return holidays;
+}
+
+/**
+ * ✅ 取得國定假日名稱
+ * 
+ * @param {string} dateStr - 日期字串 (YYYY-MM-DD)
+ * @returns {string} 假日名稱
+ */
+function getHolidayName(dateStr) {
+  const holidayNames = {
+    // 2026年
+    '2026-01-01': '中華民國開國紀念日（元旦）',
+    '2026-02-16': '農曆除夕前一日（彈性放假）',
+    '2026-02-17': '農曆除夕',
+    '2026-02-18': '春節（初一）',
+    '2026-02-19': '春節（初二）',
+    '2026-02-20': '春節（初三）',
+    '2026-02-28': '和平紀念日',
+    '2026-04-03': '兒童節前一日（彈性放假）',
+    '2026-04-04': '兒童節',
+    '2026-04-05': '清明節',
+    '2026-05-01': '勞動節',
+    '2026-06-19': '端午節',
+    '2026-09-25': '中秋節',
+    '2026-09-28': '教師節',
+    '2026-10-09': '國慶日補假',
+    '2026-10-10': '國慶日',
+    '2026-10-25': '臺灣光復節',
+    '2026-12-25': '行憲紀念日'
+  };
+  
+  return holidayNames[dateStr] || '未知假日';
+}
+
+/**
+ * 🧪 測試國定假日判斷
+ */
+function testNationalHolidays() {
+  Logger.log('🧪 測試國定假日判斷');
+  Logger.log('═══════════════════════════════════════');
+  
+  const testDates = [
+    '2026-01-01', // 元旦
+    '2026-05-01', // 勞動節
+    '2026-09-28', // 教師節
+    '2026-10-25', // 光復節
+    '2026-12-25', // 行憲紀念日
+    '2026-05-15', // 一般工作日
+    '2026-06-20', // 週六（非國定假日）
+  ];
+  
+  testDates.forEach(date => {
+    const isHoliday = isNationalHoliday(date);
+    const holidayName = getHolidayName(date);
+    
+    Logger.log(`${date}: ${isHoliday ? '✅' : '❌'} ${isHoliday ? holidayName : '工作日'}`);
+  });
+  
+  Logger.log('');
+  Logger.log('📋 2026年12月所有國定假日:');
+  const dec2026Holidays = getNationalHolidaysInMonth('2026-12');
+  dec2026Holidays.forEach(date => {
+    Logger.log(`   ${date}: ${getHolidayName(date)}`);
+  });
+  
+  Logger.log('═══════════════════════════════════════');
+}
+
+/**
+ * ✅ 計算休息日加班費（勞基法正確版）
+ */
+function calculateRestdayOvertimePay(hours, hourlyRate) {
+  let pay = 0;
+  
+  if (hours <= 0) return 0;
+  
+  // 前2小時：×4/3（約1.34）
+  const first2h = Math.min(hours, 2);
+  pay += hourlyRate * first2h * (4/3);
+  
+  if (hours <= 2) return Math.round(pay);
+  
+  // 第3~8小時：×5/3（約1.67）
+  const next6h = Math.min(hours - 2, 6);
+  pay += hourlyRate * next6h * (5/3);
+  
+  if (hours <= 8) return Math.round(pay);
+  
+  // 第9小時起：×8/3（約2.67）
+  const after8h = hours - 8;
+  pay += hourlyRate * after8h * (8/3);
+  
+  return Math.round(pay);
+}
 function calculateOvertimePay(hours, hourlyRate, dateType) {
-  let firstPay = 0;   // 前2小時
-  let secondPay = 0;  // 3-8小時
-  let thirdPay = 0;   // 9小時起
+  let firstPay = 0;
+  let secondPay = 0;
+  let thirdPay = 0;
   
   if (dateType === 'weekday') {
     // 平日加班：前2h ×1.34，3h起 ×1.67
@@ -68,7 +247,7 @@ function calculateOvertimePay(hours, hourlyRate, dateType) {
     firstPay = hourlyRate * first * 1.34;
     
     if (hours > 2) {
-      const rest = Math.min(hours - 2, 2); // 最多再算2小時（總共4h）
+      const rest = Math.min(hours - 2, 2);
       secondPay = hourlyRate * rest * 1.67;
     }
     
@@ -78,18 +257,23 @@ function calculateOvertimePay(hours, hourlyRate, dateType) {
     firstPay = hourlyRate * first * 1.34;
     
     if (hours > 2) {
-      const second = Math.min(hours - 2, 6); // 3-8h
+      const second = Math.min(hours - 2, 6);
       secondPay = hourlyRate * second * 1.67;
     }
     
     if (hours > 8) {
-      const third = hours - 8; // 9h起
+      const third = hours - 8;
       thirdPay = hourlyRate * third * 2.67;
     }
     
-  } else if (dateType === 'holiday') {
-    // 例假日/國定假日（週日）：全天 ×2.0
+  } else if (dateType === 'national_holiday') {
+    // ⭐ 國定假日加班：×2.0
     firstPay = hourlyRate * hours * 2.0;
+    
+  } else if (dateType === 'rest_day_sunday') {
+    // ⭐ 例假日（週日）：原則上不應加班，但如果有加班記錄，給 ×2.0
+    firstPay = hourlyRate * hours * 2.0;
+    Logger.log(`⚠️ 警告：${dateStr} 為例假日（週日），原則上不得出勤`);
   }
   
   return {
@@ -1062,6 +1246,26 @@ function calculateHourlySalary(employeeId, yearMonth) {
     // 4. 計算基本薪資（工作時數 × 時薪）
     const basePay = totalWorkHours * hourlyRate;
     
+    // ⭐ 新增：計算國定假日薪資
+    let holidayBasePay = 0;
+    const daysInMonth = new Date(parseInt(yearMonth.split('-')[0]), parseInt(yearMonth.split('-')[1]), 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${yearMonth}-${String(day).padStart(2, '0')}`;
+      
+      // 如果是國定假日且員工未出勤
+      if (isNationalHoliday(dateStr)) {
+        const hasWorked = attendanceRecords.some(r => r.date === dateStr && r.workHours > 0);
+        
+        if (!hasWorked) {
+          // 未出勤的國定假日，給付8小時薪資
+          holidayBasePay += hourlyRate * 8;
+          Logger.log(`   ${dateStr} 國定假日未出勤，給付 ${hourlyRate * 8} 元`);
+        }
+      }
+    }
+
+    Logger.log(`🎉 國定假日薪資 = $${Math.round(holidayBasePay)}`);
     Logger.log(`💰 基本薪資 = ${hourlyRate} × ${totalWorkHours.toFixed(2)} = $${Math.round(basePay)}`);
     
     // 5. ⭐ 取得加班記錄
@@ -1167,6 +1371,7 @@ function calculateHourlySalary(employeeId, yearMonth) {
     
     // 8. 應發總額
     const grossSalary = basePay + 
+                        holidayBasePay +
                        positionAllowance + 
                        mealAllowance + 
                        transportAllowance + 
@@ -1767,22 +1972,35 @@ function calculateMonthlySalaryInternal(employeeId, yearMonth) {
     Logger.log(`   - 休息日加班費: $${restdayOvertimePay}`);
     Logger.log(`   - 例假日加班費: $${holidayOvertimePay}`);
     
-    // 7. 請假扣款
+    // 7. 請假扣款（修正版：病假扣半薪、事假扣全薪）
     let leaveDeduction = 0;
     if (leaveRecords.success && leaveRecords.data) {
       leaveRecords.data.forEach(record => {
         if (record.reviewStatus === '核准') {
           const leaveType = String(record.leaveType).toUpperCase();
+          const leaveDays = parseFloat(record.leaveDays) || 0;
+          const dailyRate = Math.round(baseSalary / 30);
           
-          // 只有事假需要扣薪
+          // ⭐ 事假：扣全薪
           if (leaveType === 'PERSONAL_LEAVE' || leaveType === '事假') {
-            const dailyRate = Math.round(baseSalary / 30);
-            leaveDeduction += record.leaveDays * dailyRate;
+            leaveDeduction += leaveDays * dailyRate;
+            Logger.log(`   事假 ${leaveDays} 天，扣全薪 $${leaveDays * dailyRate}`);
+          }
+          
+          // ⭐ 病假（未住院）：扣半薪
+          else if (leaveType === 'SICK_LEAVE' || leaveType === '病假') {
+            const halfDailyRate = Math.round(dailyRate / 2);
+            leaveDeduction += leaveDays * halfDailyRate;
+            Logger.log(`   病假 ${leaveDays} 天，扣半薪 $${leaveDays * halfDailyRate}`);
+          }
+          
+          // ⭐ 住院病假：不扣薪（但計入年度額度）
+          else if (leaveType === 'HOSPITALIZATION_LEAVE' || leaveType === '住院病假') {
+            Logger.log(`   住院病假 ${leaveDays} 天，不扣薪`);
           }
         }
       });
     }
-    
     // 如果有請假，取消全勤獎金
     if (leaveDeduction > 0) {
       attendanceBonus = 0;
@@ -1803,8 +2021,15 @@ function calculateMonthlySalaryInternal(employeeId, yearMonth) {
     const groupInsurance = parseFloat(config['團保費用']) || 0;
     const otherDeductions = parseFloat(config['其他扣款']) || 0;
     
+    Logger.log('📊 其他扣款讀取檢查:');
+    Logger.log(`   福利金扣款: ${welfareFee}`);
+    Logger.log(`   宿舍費用: ${dormitoryFee}`);
+    Logger.log(`   團保費用: ${groupInsurance}`);
+    Logger.log(`   其他扣款: ${otherDeductions}`);
+    Logger.log(`   總計: ${welfareFee + dormitoryFee + groupInsurance + otherDeductions}`);
     // 10. 應發總額
     const grossSalary = baseSalary + 
+                        holidayBasePay +
                        positionAllowance + 
                        mealAllowance + 
                        transportAllowance + 
@@ -1896,6 +2121,18 @@ function calculateMonthlySalaryInternal(employeeId, yearMonth) {
   }
 }
 
+
+function testLeaveDeduction() {
+  const employeeId = 'U20abea6d8991c26cfc8e9c98dc999c0f'; // ⚠️ 替換成實際員工ID
+  const yearMonth = '2026-01';
+  
+  const result = calculateMonthlySalary(employeeId, yearMonth);
+  
+  Logger.log('📊 薪資計算結果:');
+  Logger.log(`   基本薪資: $${result.data.baseSalary}`);
+  Logger.log(`   請假扣款: $${result.data.leaveDeduction}`);
+  Logger.log(`   實發金額: $${result.data.netSalary}`);
+}
 
 /**
  * ✅ API：取得員工該月份的打卡記錄

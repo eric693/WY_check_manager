@@ -3,7 +3,7 @@
 // ==================== LINE 登入設定 ====================
 const LINE_CHANNEL_ID     = PropertiesService.getScriptProperties().getProperty("LINE_CHANNEL_ID");
 const LINE_CHANNEL_SECRET = PropertiesService.getScriptProperties().getProperty("LINE_CHANNEL_SECRET");
-const LINE_REDIRECT_URL   = "https://eric693.github.io/check_manager_plus/";
+const LINE_REDIRECT_URL   = "https://eric693.github.io/WY_check_manager/";
 
 // ==================== Session 設定 ====================
 const SESSION_TTL_MS = 7000 * 60 * 60 * 24; // 1 天
@@ -22,6 +22,40 @@ const SHEET_OVERTIME_RECORDS = '加班紀錄';
 // 請假系統
 const SHEET_LEAVE_RECORDS = '請假紀錄';
 const SHEET_LEAVE_BALANCE = '員工假期額度';
+
+const SHEET_REIMBURSEMENT_INVOICES = '報銷單據';  // ⭐ 放在最後
+
+// ==================== ⭐ 報銷單據工作表欄位索引（12 個欄位）====================
+const INVOICE_COL = {
+  INVOICE_ID: 0,        // A 欄：單據ID
+  REIMB_ID: 1,          // B 欄：報銷ID
+  EMPLOYEE_ID: 2,       // C 欄：員工ID
+  EMPLOYEE_NAME: 3,     // D 欄：員工姓名
+  INVOICE_NUMBER: 4,    // E 欄：發票號碼
+  INVOICE_DATE: 5,      // F 欄：發票日期
+  INVOICE_TIME: 6,      // G 欄：發票時間
+  AMOUNT: 7,            // H 欄：金額
+  STORE_NAME: 8,        // I 欄：店家名稱
+  SELLER_TAX_ID: 9,     // J 欄：賣方統編
+  RANDOM_CODE: 10,      // K 欄：隨機碼
+  PERIOD: 11            // L 欄：期別
+};
+
+// ==================== ⭐ 報銷單據標題列（12 個欄位）====================
+const INVOICE_HEADERS = [
+  '單據ID',         // A
+  '報銷ID',         // B
+  '員工ID',         // C
+  '員工姓名',       // D
+  '發票號碼',       // E
+  '發票日期',       // F
+  '發票時間',       // G
+  '金額',           // H
+  '店家名稱',       // I
+  '賣方統編',       // J
+  '隨機碼',         // K
+  '期別'            // L
+];
 
 // ==================== 員工資料表欄位索引 ====================
 const EMPLOYEE_COL = {
@@ -303,3 +337,68 @@ const SYSTEM_VERSION = {
     '請假管理（15種假別）'
   ]
 };
+
+
+// ==================== 🧪 測試函數 ====================
+
+/**
+ * 🧪 測試建立報銷單據工作表（12 欄位版）
+ */
+function testCreateReimbursementInvoiceSheet() {
+  Logger.log('🧪 測試建立報銷單據工作表（12 欄位版）');
+  Logger.log('═══════════════════════════════════════');
+  Logger.log('');
+  
+  Logger.log('1️⃣ 檢查常數值');
+  Logger.log('   SHEET_REIMBURSEMENT_INVOICES = ' + SHEET_REIMBURSEMENT_INVOICES);
+  Logger.log('   INVOICE_HEADERS 欄位數: ' + INVOICE_HEADERS.length);
+  Logger.log('');
+  
+  if (SHEET_REIMBURSEMENT_INVOICES === undefined) {
+    Logger.log('❌ 常數未定義，測試中止');
+    return;
+  }
+  
+  Logger.log('2️⃣ 嘗試建立工作表（12 個欄位）');
+  Logger.log('   標題列: ' + INVOICE_HEADERS.join(', '));
+  Logger.log('');
+  
+  try {
+    const sheet = getOrCreateSheet(SHEET_REIMBURSEMENT_INVOICES, INVOICE_HEADERS);
+    
+    Logger.log('');
+    Logger.log('✅ 工作表建立成功');
+    Logger.log('   工作表名稱: ' + sheet.getName());
+    Logger.log('   工作表 ID: ' + sheet.getSheetId());
+    Logger.log('   欄位數量: ' + sheet.getLastColumn());
+    
+    Logger.log('');
+    Logger.log('═══════════════════════════════════════');
+    Logger.log('✅✅✅ 測試成功！');
+    
+  } catch (error) {
+    Logger.log('');
+    Logger.log('❌ 錯誤發生');
+    Logger.log('   錯誤訊息: ' + error.message);
+    Logger.log('   錯誤堆疊: ' + error.stack);
+    Logger.log('═══════════════════════════════════════');
+  }
+}
+
+/**
+ * 📋 顯示報銷單據欄位對照表
+ */
+function showInvoiceColumnMapping() {
+  Logger.log('📋 報銷單據欄位對照表（12 欄位）');
+  Logger.log('═══════════════════════════════════════');
+  Logger.log('');
+  
+  INVOICE_HEADERS.forEach((header, index) => {
+    const columnLetter = String.fromCharCode(65 + index);  // A, B, C...
+    Logger.log(`${columnLetter} 欄 (索引 ${index}): ${header}`);
+  });
+  
+  Logger.log('');
+  Logger.log('═══════════════════════════════════════');
+  Logger.log(`📊 總計: ${INVOICE_HEADERS.length} 個欄位`);
+}

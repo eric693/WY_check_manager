@@ -1,4 +1,4 @@
-// Main.gs - 完整版（含打卡、加班、請假、排班系統）
+// Main.gs - 完整版（含打卡、加班、請假、排班系統 + IP驗證）
 
 // doGet(e) 負責處理所有外部請求
 function doGet(e) {
@@ -46,6 +46,14 @@ function doGet(e) {
         return respond1(handleAddLocation(e.parameter));
       case "getLocations":
         return respond1(handleGetLocation());
+      
+      // ==================== ⭐ IP 白名單管理（新增）====================
+      case "addIPToWhitelist":
+        return respond1(handleAddIPToWhitelist(e.parameter));
+      case "getIPWhitelist":
+        return respond1(handleGetIPWhitelist(e.parameter));
+      case "deleteIPFromWhitelist":
+        return respond1(handleDeleteIPFromWhitelist(e.parameter));
       
       // ==================== 員工管理 ====================
       case "getAllUsers":
@@ -156,6 +164,8 @@ function doGet(e) {
       case "saveMonthlySalary":
         return saveMonthlySalaryAPI();
 
+      case "toggleUserStatus":
+        return respond1(handleToggleUserStatus(e.parameter));
       case 'exportAllSalaryExcel':
         try {
           Logger.log('📊 收到 exportAllSalaryExcel 请求');
@@ -276,6 +286,28 @@ function doGet(e) {
         return respond1(handleAddAnnouncement(e.parameter));
       case "deleteAnnouncement":
         return respond1(handleDeleteAnnouncement(e.parameter));
+      
+      // ==================== 費用管理系統 ====================
+      case "submitAdvanceApplication":
+        return respond1(handleSubmitAdvanceApplication(e.parameter));
+      // case "submitReimbursement":
+      //   return respond1(handleSubmitReimbursement(e.parameter));
+      case "getAdvanceRecords":
+        return respond1(handleGetAdvanceRecords(e.parameter));
+      case "getReimbursementRecords":
+        return respond1(handleGetReimbursementRecords(e.parameter));
+      case "reviewAdvanceApplication":
+        return respond1(handleReviewAdvanceApplication(e.parameter));
+      case "reviewReimbursement":
+        return respond1(handleReviewReimbursement(e.parameter));
+
+      case "getPendingAdvanceRequests":
+        return respond1(handleGetPendingAdvanceRequests(e.parameter));
+      case "getPendingReimbursementRequests":
+        return respond1(handleGetPendingReimbursementRequests(e.parameter));
+
+      case "invoiceOCR":
+        return respond1(handleInvoiceOCR(e.parameter));
       // ==================== 測試端點 ====================
       case "initApp":
         return respond1(handleInitApp(e.parameter));
@@ -292,44 +324,102 @@ function doGet(e) {
   }
 }
 
-// Main.gs - 新增 LINE Bot Webhook 處理
-
-/**
- * 處理 LINE Webhook 請求
- */
 function doPost(e) {
   try {
-    const json = JSON.parse(e.postData.contents);
+    Logger.log('═══════════════════════════════════════');
+    Logger.log('📥 收到 POST 請求');
+    Logger.log('═══════════════════════════════════════');
     
-    // 驗證 LINE Signature（安全性）
-    const signature = e.parameter.signature || e.headers['X-Line-Signature'];
-    if (!verifyLineSignature_(e.postData.contents, signature)) {
-      return ContentService.createTextOutput(JSON.stringify({ error: 'Invalid signature' }))
-        .setMimeType(ContentService.MimeType.JSON);
+    // ⭐ 步驟 1：解析請求資料
+    let requestData;
+    
+    if (e.postData) {
+      Logger.log('📦 POST 資料類型:', e.postData.type);
+      Logger.log('📦 POST 資料長度:', e.postData.length);
+      
+      try {
+        const contents = e.postData.contents;
+        requestData = JSON.parse(contents);
+        Logger.log('✅ JSON 解析成功');
+        Logger.log('   action:', requestData.action);
+        Logger.log('   token:', requestData.token ? '有' : '無');
+        
+      } catch (parseError) {
+        Logger.log('❌ JSON 解析失敗:', parseError);
+        return createJSONResponse({ 
+          ok: false, 
+          msg: 'JSON 格式錯誤：' + parseError.toString() 
+        });
+      }
+      
+    } else {
+      Logger.log('❌ 沒有 POST 資料');
+      return createJSONResponse({ 
+        ok: false, 
+        msg: '缺少 POST 資料' 
+      });
     }
     
-    // 處理 LINE 事件
-    json.events.forEach(event => {
-      if (event.type === 'message' && event.message.type === 'text') {
-        handleLineMessage(event);
-      } else if (event.type === 'message' && event.message.type === 'location') {
-        handleLineLocation(event);
-      }
-    });
+    // ⭐ 步驟 2：驗證必要參數
+    if (!requestData.action) {
+      return createJSONResponse({ 
+        ok: false, 
+        msg: '缺少 action 參數' 
+      });
+    }
     
-    return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
-      .setMimeType(ContentService.MimeType.JSON);
-      
+    // ⭐⭐⭐ 步驟 3：路由到對應處理器（包含 invoiceOCR）
+    Logger.log('🔀 路由到處理器:', requestData.action);
+    
+    switch (requestData.action) {
+      // ⭐⭐⭐ 關鍵：新增 invoiceOCR case
+      case 'invoiceOCR':
+        Logger.log('📄 處理發票 OCR 請求');
+        const ocrResult = handleInvoiceOCR(requestData);
+        
+        // 檢查是否已是 ContentService
+        if (ocrResult && typeof ocrResult.getContent === 'function') {
+          Logger.log('✅ 返回 ContentService');
+          return ocrResult;
+        }
+        
+        // 否則包裝成 JSON
+        Logger.log('⚠️ 包裝成 JSON');
+        return createJSONResponse(ocrResult);
+        
+      case 'submitReimbursement':
+        Logger.log('💰 處理報銷申請');
+        const reimbResult = handleSubmitReimbursement(requestData);
+        return createJSONResponse(reimbResult);
+        
+      default:
+        Logger.log('❌ 未知的 action:', requestData.action);
+        return createJSONResponse({ 
+          ok: false, 
+          msg: '未知的 action: ' + requestData.action 
+        });
+    }
+    
   } catch (error) {
-    Logger.log('❌ Webhook 錯誤: ' + error);
-    return ContentService.createTextOutput(JSON.stringify({ error: error.message }))
-      .setMimeType(ContentService.MimeType.JSON);
+    Logger.log('');
+    Logger.log('❌❌❌ doPost 發生錯誤:', error);
+    Logger.log('錯誤堆疊:', error.stack);
+    
+    return createJSONResponse({ 
+      ok: false, 
+      msg: '伺服器錯誤：' + error.toString() 
+    });
   }
 }
-
 /**
- * 驗證 LINE Signature
+ * ⭐ 輔助函數：建立 JSON 回應（移除 setHeaders）
  */
+function createJSONResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 /**
  * 驗證 LINE Signature（測試模式：暫時停用）
  */
@@ -363,12 +453,103 @@ function verifyLineSignature_(body, signature) {
   */
 }
 
-// function verifyLineSignature_(body, signature) {
-//   const channelSecret = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_SECRET');
-//   const hash = Utilities.computeHmacSha256Signature(body, channelSecret);
-//   const expectedSignature = Utilities.base64Encode(hash);
-//   return expectedSignature === signature;
-// }
+
+// ==================== ⭐ IP 白名單管理 Handler（新增）====================
+
+/**
+ * 處理新增 IP 到白名單
+ */
+function handleAddIPToWhitelist(params) {
+  try {
+    if (!params.token || !validateSession(params.token)) {
+      return { ok: false, code: "ERR_SESSION_INVALID", msg: "未授權或 session 已過期" };
+    }
+    
+    const ipRange = params.ipRange;
+    const description = params.description || '';
+    
+    if (!ipRange) {
+      return { ok: false, msg: "缺少 IP 範圍參數" };
+    }
+    
+    // 呼叫核心函數（假設在 Code.gs 中實作）
+    const result = addIPToWhitelist(params.token, ipRange, description);
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleAddIPToWhitelist 錯誤: ' + error);
+    return { ok: false, msg: error.message };
+  }
+}
+
+/**
+ * 處理取得 IP 白名單
+ */
+function handleGetIPWhitelist(params) {
+  try {
+    if (!params.token || !validateSession(params.token)) {
+      return { ok: false, code: "ERR_SESSION_INVALID", msg: "未授權或 session 已過期" };
+    }
+    
+    // 呼叫核心函數
+    const result = getIPWhitelist(params.token);
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleGetIPWhitelist 錯誤: ' + error);
+    return { ok: false, msg: error.message };
+  }
+}
+
+/**
+ * 處理刪除 IP 白名單
+ */
+function handleDeleteIPFromWhitelist(params) {
+  try {
+    if (!params.token || !validateSession(params.token)) {
+      return { ok: false, code: "ERR_SESSION_INVALID", msg: "未授權或 session 已過期" };
+    }
+    
+    const rowNumber = parseInt(params.rowNumber);
+    
+    if (!rowNumber) {
+      return { ok: false, msg: "缺少行號參數" };
+    }
+    
+    // 呼叫核心函數
+    const result = deleteIPFromWhitelist(params.token, rowNumber);
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleDeleteIPFromWhitelist 錯誤: ' + error);
+    return { ok: false, msg: error.message };
+  }
+}
+
+/**
+ * ⭐ 修正：處理打卡（加入 IP 參數）
+ */
+function handlePunch(params) {
+  try {
+    if (!params.token || !validateSession(params.token)) {
+      return { ok: false, code: "ERR_SESSION_INVALID" };
+    }
+    
+    const type = params.type;
+    const lat = parseFloat(params.lat);
+    const lng = parseFloat(params.lng);
+    const note = params.note || '';
+    const clientIP = params.ip || '';  // ⭐ 新增 IP 參數
+    
+    // 呼叫核心打卡函數（需要修改 punch 函數以接收 clientIP）
+    const result = punch(params.token, type, lat, lng, note, clientIP);
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handlePunch 錯誤: ' + error);
+    return { ok: false, msg: error.message };
+  }
+}
 
 // ==================== 排班系統 Handler 函數 ====================
 
@@ -863,4 +1044,124 @@ function testLineBotLocation() {
   Logger.log('');
   Logger.log('📤 結果:');
   Logger.log(result.getContent());
+}
+
+/**
+ * 🧪 測試 doPost
+ */
+function testDoPost() {
+  Logger.log('🧪 測試 doPost 函數');
+  Logger.log('');
+  
+  // 模擬 POST 請求
+  const mockEvent = {
+    postData: {
+      type: 'application/json',
+      length: 100,
+      contents: JSON.stringify({
+        action: 'invoiceOCR',
+        token: 'test-token-123',
+        imageData: 'test-base64-data',
+        fileName: 'test.jpg'
+      })
+    }
+  };
+  
+  Logger.log('📥 模擬請求:');
+  Logger.log(JSON.stringify(mockEvent, null, 2));
+  Logger.log('');
+  
+  const response = doPost(mockEvent);
+  
+  Logger.log('');
+  Logger.log('📤 回應:');
+  Logger.log(response.getContent());
+  Logger.log('');
+  
+  const headers = response.getHeaders();
+  Logger.log('📋 回應標頭:');
+  for (const key in headers) {
+    Logger.log('   ' + key + ': ' + headers[key]);
+  }
+}
+
+
+function testDoPostFixed() {
+  Logger.log('🧪 測試修正後的 doPost');
+  Logger.log('');
+  
+  const mockEvent = {
+    postData: {
+      type: 'application/json',
+      length: 100,
+      contents: JSON.stringify({
+        action: 'invoiceOCR',
+        token: 'a0b545a8-b0a3-43ae-b97c-927376befa9d',  // ⚠️ 替換成有效的 token
+        imageData: 'test-base64-data',
+        fileName: 'test.jpg'
+      })
+    }
+  };
+  
+  const response = doPost(mockEvent);
+  
+  Logger.log('📤 回應內容:');
+  Logger.log(response.getContent());
+}
+
+
+/**
+ * 🧪 測試 doPost - 使用真實的 Base64 圖片
+ */
+function testDoPostWithRealImage() {
+  Logger.log('🧪 測試修正後的 doPost（真實圖片）');
+  Logger.log('');
+  
+  // ⭐ 這是一個 1x1 像素的紅色 JPEG 圖片的 Base64
+  const realBase64Image = '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==';
+  
+  // ⭐ 使用有效的 token（請替換成你的真實 token）
+  const validToken = 'a0b545a8-b0a3-43ae-b97c-927376befa9d';  // ⚠️ 請替換
+  
+  Logger.log('📋 測試資訊:');
+  Logger.log('   Base64 長度:', realBase64Image.length);
+  Logger.log('   Token:', validToken.substring(0, 20) + '...');
+  Logger.log('');
+  
+  const mockEvent = {
+    postData: {
+      type: 'application/json',
+      length: 500,
+      contents: JSON.stringify({
+        action: 'invoiceOCR',
+        token: validToken,
+        imageData: realBase64Image,
+        fileName: 'test_invoice.jpg'
+      })
+    }
+  };
+  
+  Logger.log('📤 開始測試...');
+  Logger.log('');
+  
+  const response = doPost(mockEvent);
+  
+  Logger.log('');
+  Logger.log('📤 回應內容:');
+  const responseText = response.getContent();
+  Logger.log(responseText);
+  
+  // 解析回應
+  try {
+    const result = JSON.parse(responseText);
+    Logger.log('');
+    if (result.ok) {
+      Logger.log('✅✅✅ 測試成功！');
+      Logger.log('OCR 結果:', JSON.stringify(result.data, null, 2));
+    } else {
+      Logger.log('❌ 測試失敗:', result.msg);
+    }
+  } catch (e) {
+    Logger.log('❌ 無法解析回應:', e);
+  }
 }

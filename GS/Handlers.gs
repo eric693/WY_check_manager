@@ -129,10 +129,70 @@ function handleExchangeToken(otoken) {
 
 // ==================== 打卡功能相關 ====================
 
+/**
+ * ✅ 處理打卡（修正版 - 包含 IP 驗證）
+ */
 function handlePunch(params) {
-  const { token, type, lat, lng, note } = params;
-  return punch(token, type, parseFloat(lat), parseFloat(lng), note);
+  try {
+    Logger.log('═══════════════════════════════════════');
+    Logger.log('🎯 handlePunch 開始');
+    Logger.log('═══════════════════════════════════════');
+    
+    const { token, type, lat, lng, note, ip } = params;
+    
+    Logger.log('📥 收到的參數:');
+    Logger.log('   - token: ' + (token ? '存在' : '缺少'));
+    Logger.log('   - type: ' + (type || '缺少'));
+    Logger.log('   - lat: ' + (lat || '缺少'));
+    Logger.log('   - lng: ' + (lng || '缺少'));
+    Logger.log('   - note: ' + (note || '(空)'));
+    Logger.log('   - ip: ' + (ip || '缺少'));  // ⭐ 記錄 IP
+    
+    // 驗證必要參數
+    if (!token) {
+      return { ok: false, code: "ERR_MISSING_TOKEN" };
+    }
+    
+    if (!type) {
+      return { ok: false, code: "ERR_MISSING_TYPE" };
+    }
+    
+    if (!lat || !lng) {
+      return { ok: false, code: "ERR_MISSING_LOCATION" };
+    }
+    
+    // ⭐⭐⭐ 關鍵：傳遞 clientIP 給核心函數
+    const clientIP = ip || '';
+    
+    Logger.log('📡 準備呼叫 punch()');
+    Logger.log('   參數: token, type=' + type + ', lat=' + lat + ', lng=' + lng + ', clientIP=' + clientIP);
+    
+    // 呼叫核心打卡函數（包含 IP 驗證）
+    const result = punch(
+      token, 
+      type, 
+      parseFloat(lat), 
+      parseFloat(lng), 
+      note || '', 
+      clientIP  // ⭐ 傳遞 IP
+    );
+    
+    Logger.log('📤 punch() 回傳結果:');
+    Logger.log('   - ok: ' + result.ok);
+    Logger.log('   - code: ' + (result.code || '無'));
+    Logger.log('═══════════════════════════════════════');
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handlePunch 錯誤: ' + error);
+    return { ok: false, code: "ERR_INTERNAL_ERROR", msg: error.message };
+  }
 }
+// function handlePunch(params) {
+//   const { token, type, lat, lng, note } = params;
+//   return punch(token, type, parseFloat(lat), parseFloat(lng), note);
+// }
 
 // function handleAdjustPunch(params) {
 //   const { token, type, lat, lng, note, datetime } = params;
@@ -1822,6 +1882,70 @@ function getUserIdFromSession(token) {
   }
 }
 
+/**
+ * ✅ 從 Token 取得完整用戶資訊（含權限）
+ */
+function getUserByToken(token) {
+  try {
+    if (!token) {
+      Logger.log('❌ getUserByToken: token 為空');
+      return null;
+    }
+    
+    const session = checkSession_(token);
+    
+    if (!session.ok) {
+      Logger.log('❌ getUserByToken: session 驗證失敗');
+      return null;
+    }
+    
+    if (!session.user) {
+      Logger.log('❌ getUserByToken: session.user 不存在');
+      return null;
+    }
+    
+    Logger.log('✅ getUserByToken 成功');
+    Logger.log('   userId: ' + session.user.userId);
+    Logger.log('   name: ' + session.user.name);
+    Logger.log('   dept: ' + session.user.dept);
+    
+    return session.user;
+    
+  } catch (error) {
+    Logger.log('❌ getUserByToken 錯誤: ' + error);
+    return null;
+  }
+}
+
+/**
+ * ✅ 驗證 Session 是否有效
+ */
+function validateSession(token) {
+  try {
+    if (!token) {
+      Logger.log('❌ validateSession: token 為空');
+      return false;
+    }
+    
+    const session = checkSession_(token);
+    
+    if (!session.ok) {
+      Logger.log('❌ validateSession: session 驗證失敗');
+      return false;
+    }
+    
+    if (!session.user) {
+      Logger.log('❌ validateSession: session.user 不存在');
+      return false;
+    }
+    
+    return true;
+    
+  } catch (error) {
+    Logger.log('❌ validateSession 錯誤: ' + error);
+    return false;
+  }
+}
 // ==================== 測試函數 ====================
 
 /**
@@ -2453,5 +2577,677 @@ function handleDeleteAnnouncement(params) {
     Logger.log('❌ 錯誤: ' + error);
     Logger.log('═══════════════════════════════════════');
     return { ok: false, msg: error.toString() };
+  }
+}
+
+
+/**
+ * 處理停用/啟用用戶
+ */
+function handleToggleUserStatus(params) {
+  try {
+    Logger.log('🔒 處理變更用戶狀態請求');
+    
+    // 驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      return { ok: false, msg: "未授權或 session 已過期" };
+    }
+    
+    // 驗證管理員權限
+    const session = checkSession_(params.token);
+    if (!session.ok || !session.user || session.user.dept !== '管理員') {
+      return { ok: false, msg: '需要管理員權限' };
+    }
+    
+    const userId = params.userId;
+    const newStatus = params.newStatus;  // '啟用' 或 '停用'
+    
+    if (!userId || !newStatus) {
+      return { ok: false, msg: '缺少必要參數' };
+    }
+    
+    // 不能操作自己
+    if (userId === session.user.userId) {
+      return { ok: false, msg: '不能變更自己的狀態' };
+    }
+    
+    const result = toggleUserStatus(userId, newStatus);
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleToggleUserStatus 錯誤: ' + error);
+    return { ok: false, msg: error.message };
+  }
+}
+
+// ==================== 費用管理系統 Handler ====================
+/**
+ * ✅ 處理預支申請（修正版）
+ */
+function handleSubmitAdvanceApplication(params) {
+  try {
+    Logger.log('📝 收到預支申請請求');
+    
+    // ⭐ 驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      Logger.log('❌ Session 驗證失敗');
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    Logger.log('✅ Session 驗證成功');
+    
+    // ⭐ 直接呼叫核心函數（params 包含 token）
+    const result = submitAdvanceApplication(params);
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleSubmitAdvanceApplication 錯誤: ' + error);
+    return { ok: false, msg: '系統錯誤：' + error.toString() };
+  }
+}
+
+/**
+ * ✅ 處理取得預支記錄（修正版）
+ */
+function handleGetAdvanceRecords(params) {
+  try {
+    Logger.log('📋 收到取得預支記錄請求');
+    
+    // ⭐ 驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      Logger.log('❌ Session 驗證失敗');
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    // ⭐ 從 Session 取得 userId
+    const sessionResult = handleCheckSession(params.token);
+    
+    if (!sessionResult.ok || !sessionResult.user) {
+      Logger.log('❌ 無法取得用戶資訊');
+      return { ok: false, msg: 'Session 資料無效' };
+    }
+    
+    const userId = sessionResult.user.userId;
+    Logger.log('👤 用戶 ID: ' + userId);
+    
+    // ⭐ 將 userId 加入參數
+    params.userId = userId;
+    
+    // 呼叫核心函數
+    const result = getAdvanceRecords(params);
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleGetAdvanceRecords 錯誤: ' + error);
+    return { ok: false, msg: '系統錯誤：' + error.toString() };
+  }
+}
+
+
+// ExpenseAPI.gs - handleSubmitReimbursement 完整修正版
+
+/**
+ * ✅ 處理報銷申請（完整修正版）
+ */
+function handleSubmitReimbursement(params) {
+  try {
+    Logger.log('═══════════════════════════════════════');
+    Logger.log('📄 開始處理報銷申請');
+    Logger.log('═══════════════════════════════════════');
+    
+    // ⭐ 步驟 1：驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      Logger.log('❌ Session 驗證失敗');
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    Logger.log('✅ Session 驗證成功');
+    
+    // ⭐ 步驟 2：從 Session 取得用戶資訊
+    const sessionResult = checkSession_(params.token);  // ⭐ 直接用 checkSession_
+    
+    if (!sessionResult.ok || !sessionResult.user) {
+      Logger.log('❌ 無法取得用戶資訊');
+      return { ok: false, msg: 'Session 資料無效' };
+    }
+    
+    const userId = sessionResult.user.userId;
+    const userName = sessionResult.user.name;
+    
+    Logger.log('👤 用戶資訊:');
+    Logger.log('   userId: ' + userId);
+    Logger.log('   userName: ' + userName);
+    
+    // ⭐⭐⭐ 步驟 3：解析並組裝完整資料
+    let reimbursementData;
+    
+    if (params.data) {
+      // 如果 data 是字串，解析它
+      if (typeof params.data === 'string') {
+        try {
+          const parsedData = JSON.parse(params.data);
+          reimbursementData = {
+            userId: userId,
+            userName: userName,
+            date: params.date,
+            summary: params.summary,
+            amount: params.amount,
+            note: params.note || '',
+            invoices: parsedData.invoices || []  // ⭐ 從 data 中取得 invoices
+          };
+        } catch (parseError) {
+          Logger.log('❌ 解析 data 失敗: ' + parseError);
+          return { ok: false, msg: '資料格式錯誤' };
+        }
+      } else {
+        // data 已經是物件
+        reimbursementData = {
+          userId: userId,
+          userName: userName,
+          date: params.date,
+          summary: params.summary,
+          amount: params.amount,
+          note: params.note || '',
+          invoices: params.data.invoices || []
+        };
+      }
+    } else {
+      // 沒有 data 參數，直接從 params 取得 invoices
+      reimbursementData = {
+        userId: userId,
+        userName: userName,
+        date: params.date,
+        summary: params.summary,
+        amount: params.amount,
+        note: params.note || '',
+        invoices: params.invoices || []
+      };
+    }
+    
+    Logger.log('');
+    Logger.log('📋 組裝後的資料:');
+    Logger.log('   日期: ' + reimbursementData.date);
+    Logger.log('   摘要: ' + reimbursementData.summary);
+    Logger.log('   金額: ' + reimbursementData.amount);
+    Logger.log('   發票數量: ' + reimbursementData.invoices.length);
+    
+    // ⭐ 步驟 4：驗證必要欄位
+    if (!reimbursementData.date || !reimbursementData.summary || !reimbursementData.amount) {
+      Logger.log('❌ 缺少必要參數');
+      return { ok: false, msg: '缺少必要參數' };
+    }
+  
+    
+    Logger.log('✅ 資料驗證通過');
+    Logger.log('');
+    
+    // ⭐⭐⭐ 步驟 5：直接呼叫核心函數（不再包裝）
+    const result = submitReimbursement(reimbursementData);
+    
+    Logger.log('');
+    Logger.log('📤 處理結果: ' + (result.ok ? '成功' : '失敗'));
+    Logger.log('═══════════════════════════════════════');
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('');
+    Logger.log('❌❌❌ handleSubmitReimbursement 錯誤');
+    Logger.log('錯誤訊息: ' + error.message);
+    Logger.log('錯誤堆疊: ' + error.stack);
+    Logger.log('═══════════════════════════════════════');
+    
+    return { 
+      ok: false, 
+      msg: '系統錯誤：' + error.toString() 
+    };
+  }
+}
+
+/**
+ * ✅ 處理取得報銷記錄（修正版）
+ */
+function handleGetReimbursementRecords(params) {
+  try {
+    Logger.log('📋 收到取得報銷記錄請求');
+    
+    // ⭐ 驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      Logger.log('❌ Session 驗證失敗');
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    // ⭐ 從 Session 取得 userId
+    const sessionResult = handleCheckSession(params.token);
+    
+    if (!sessionResult.ok || !sessionResult.user) {
+      Logger.log('❌ 無法取得用戶資訊');
+      return { ok: false, msg: 'Session 資料無效' };
+    }
+    
+    const userId = sessionResult.user.userId;
+    Logger.log('👤 用戶 ID: ' + userId);
+    
+    // ⭐ 將 userId 加入參數
+    params.userId = userId;
+    
+    // 呼叫核心函數
+    const result = getReimbursementRecords(params);
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleGetReimbursementRecords 錯誤: ' + error);
+    return { ok: false, msg: '系統錯誤：' + error.toString() };
+  }
+}
+
+/**
+ * ✅ 處理審核預支申請（修正版）
+ */
+function handleReviewAdvanceApplication(params) {
+  try {
+    Logger.log('✅ 收到審核預支申請請求');
+    
+    // ⭐ 驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      Logger.log('❌ Session 驗證失敗');
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    // ⭐ 從 Session 取得 reviewerId
+    const sessionResult = handleCheckSession(params.token);
+    
+    if (!sessionResult.ok || !sessionResult.user) {
+      Logger.log('❌ 無法取得用戶資訊');
+      return { ok: false, msg: 'Session 資料無效' };
+    }
+    
+    const reviewerId = sessionResult.user.userId;
+    Logger.log('👤 審核人 ID: ' + reviewerId);
+    
+    // ⭐ 將 reviewerId 加入參數
+    params.reviewerId = reviewerId;
+    
+    // 呼叫核心函數
+    const result = reviewAdvanceApplication(params);
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleReviewAdvanceApplication 錯誤: ' + error);
+    return { ok: false, msg: '系統錯誤：' + error.toString() };
+  }
+}
+
+/**
+ * ✅ 處理審核報銷申請（修正版）
+ */
+function handleReviewReimbursement(params) {
+  try {
+    Logger.log('✅ 收到審核報銷申請請求');
+    
+    // ⭐ 驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      Logger.log('❌ Session 驗證失敗');
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    // ⭐ 從 Session 取得 reviewerId
+    const sessionResult = handleCheckSession(params.token);
+    
+    if (!sessionResult.ok || !sessionResult.user) {
+      Logger.log('❌ 無法取得用戶資訊');
+      return { ok: false, msg: 'Session 資料無效' };
+    }
+    
+    const reviewerId = sessionResult.user.userId;
+    Logger.log('👤 審核人 ID: ' + reviewerId);
+    
+    // ⭐ 將 reviewerId 加入參數
+    params.reviewerId = reviewerId;
+    
+    // 呼叫核心函數
+    const result = reviewReimbursement(params);
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleReviewReimbursement 錯誤: ' + error);
+    return { ok: false, msg: '系統錯誤：' + error.toString() };
+  }
+}
+
+/**
+ * ✅ 處理取得待審核的預支申請（管理員）
+ */
+function handleGetPendingAdvanceRequests(params) {
+  try {
+    Logger.log('📋 收到取得待審核預支申請請求');
+    
+    // ⭐ 驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      Logger.log('❌ Session 驗證失敗');
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    // 呼叫核心函數
+    const result = getPendingAdvanceRequests();
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleGetPendingAdvanceRequests 錯誤: ' + error);
+    return { ok: false, msg: '系統錯誤：' + error.toString() };
+  }
+}
+
+/**
+ * ✅ 處理取得待審核的報銷申請（管理員）
+ */
+function handleGetPendingReimbursementRequests(params) {
+  try {
+    Logger.log('📋 收到取得待審核報銷申請請求');
+    
+    // 驗證 Session
+    if (!params.token || !validateSession(params.token)) {
+      Logger.log('❌ Session 驗證失敗');
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    // 呼叫核心函數
+    const result = getPendingReimbursementRequests();
+    
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleGetPendingReimbursementRequests 錯誤: ' + error);
+    return { ok: false, msg: '系統錯誤：' + error.toString() };
+  }
+}
+
+function testGetPendingAdvance() {
+  Logger.log('🧪 測試取得待審核預支');
+  
+  const testParams = {
+    token: '0daa21a9-3927-4bfb-a877-7d473f6ffd2d'
+  };
+  
+  const result = handleGetPendingAdvanceRequests(testParams);
+  
+  Logger.log('📤 結果:', JSON.stringify(result, null, 2));
+  
+  if (result.ok) {
+    Logger.log('✅ 成功！找到', result.records.length, '筆記錄');
+  } else {
+    Logger.log('❌ 失敗:', result.msg);
+  }
+}
+
+/**
+ * ✅ 處理發票 OCR（確保返回普通物件）
+ */
+function handleInvoiceOCR(params) {
+  try {
+    Logger.log('═══════════════════════════════════════');
+    Logger.log('🧾 handleInvoiceOCR 開始');
+    Logger.log('═══════════════════════════════════════');
+    
+    // 驗證 token
+    if (!params.token) {
+      return { ok: false, msg: '缺少 token' };
+    }
+    
+    if (!validateSession(params.token)) {
+      return { ok: false, msg: '未授權或 session 已過期' };
+    }
+    
+    // 驗證圖片資料
+    if (!params.imageData) {
+      return { ok: false, msg: '缺少圖片資料' };
+    }
+    
+    Logger.log('✅ 參數驗證通過');
+    Logger.log('   imageData 長度:', params.imageData.length);
+    
+    const result = processInvoiceOCR(params.imageData, params.fileName);
+    
+    Logger.log('📤 OCR 結果:', result);
+    Logger.log('═══════════════════════════════════════');
+    
+    // ⭐⭐⭐ 關鍵：返回普通物件（不是 ContentService）
+    return result;
+    
+  } catch (error) {
+    Logger.log('❌ handleInvoiceOCR 錯誤:', error);
+    Logger.log('❌ 錯誤堆疊:', error.stack);
+    
+    return { 
+      ok: false, 
+      msg: '系統錯誤：' + error.toString() 
+    };
+  }
+}
+
+/**
+ * ✅ 實際的 OCR 處理邏輯（呼叫 OpenAI API）
+ */
+function processInvoiceOCR(base64Image, fileName) {
+  console.log('🤖 呼叫 OpenAI Vision API...');
+  
+  const OPENAI_API_KEY = PropertiesService.getScriptProperties().getProperty('OPENAI_API_KEY');
+  
+  if (!OPENAI_API_KEY) {
+    throw new Error('未設定 OPENAI_API_KEY');
+  }
+  
+  const prompt = `請辨識這張台灣發票，並以 JSON 格式回傳以下資訊（如果無法辨識某項目，請填入 null）：
+{
+  "invoiceNumber": "發票號碼（8 位數字，例如 AB12345678）",
+  "date": "發票日期（YYYY-MM-DD 格式）",
+  "amount": "總金額（數字，不含逗號和貨幣符號）",
+  "storeName": "店家名稱"
+}
+
+請只回傳 JSON 格式，不要包含任何其他文字或說明。`;
+  
+  const payload = {
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { 
+            type: 'text', 
+            text: prompt 
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Image}`
+            }
+          }
+        ]
+      }
+    ],
+    max_tokens: 500,
+    temperature: 0.2
+  };
+  
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      'Authorization': 'Bearer ' + OPENAI_API_KEY
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+  
+  console.log('📤 發送請求到 OpenAI...');
+  
+  const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', options);
+  const responseCode = response.getResponseCode();
+  
+  console.log('📥 OpenAI 回應狀態:', responseCode);
+  
+  if (responseCode !== 200) {
+    const errorText = response.getContentText();
+    console.error('❌ OpenAI API 錯誤:', errorText);
+    throw new Error('OpenAI API 錯誤：' + errorText);
+  }
+  
+  const result = JSON.parse(response.getContentText());
+  console.log('✅ OpenAI 回應成功');
+  
+  const messageContent = result.choices[0].message.content;
+  console.log('🤖 AI 回應:', messageContent);
+  
+  // 解析 JSON 回應
+  try {
+    // 移除可能的 Markdown 程式碼區塊標記
+    const cleanedContent = messageContent
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+    
+    const ocrData = JSON.parse(cleanedContent);
+    
+    console.log('✅ OCR 資料解析成功:', JSON.stringify(ocrData));
+    
+    return ocrData;
+    
+  } catch (parseError) {
+    console.error('❌ 解析 OCR 結果失敗:', parseError);
+    console.error('原始內容:', messageContent);
+    throw new Error('解析 OCR 結果失敗：' + parseError.toString());
+  }
+}
+
+/**
+ * 🔍 解析發票文字
+ */
+function parseInvoiceText(text) {
+  Logger.log('🔍 開始解析發票文字...');
+  
+  const invoiceData = {
+    invoiceNumber: '',
+    date: '',
+    amount: '',
+    storeName: ''
+  };
+  
+  // ⭐ 1. 發票號碼 (通常是 2 個英文字母 + 8 個數字)
+  const invoiceMatch = text.match(/[A-Z]{2}[-\s]?\d{8}/);
+  if (invoiceMatch) {
+    invoiceData.invoiceNumber = invoiceMatch[0].replace(/[-\s]/g, '');
+    Logger.log('✅ 找到發票號碼: ' + invoiceData.invoiceNumber);
+  }
+  
+  // ⭐ 2. 日期 (多種格式)
+  // 西元年格式：2025-01-14, 2025/01/14, 2025.01.14
+  let dateMatch = text.match(/(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/);
+  if (dateMatch) {
+    const year = dateMatch[1];
+    const month = dateMatch[2].padStart(2, '0');
+    const day = dateMatch[3].padStart(2, '0');
+    
+    // 尋找時間 (HH:mm:ss 或 HH:mm)
+    const timeMatch = text.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (timeMatch) {
+      const hour = timeMatch[1].padStart(2, '0');
+      const minute = timeMatch[2];
+      const second = timeMatch[3] ? timeMatch[3] : '00';
+      invoiceData.date = `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+    } else {
+      invoiceData.date = `${year}-${month}-${day} 00:00:00`;
+    }
+    Logger.log('✅ 找到日期: ' + invoiceData.date);
+  }
+  
+  // 民國年格式：114/01/14, 114-01-14
+  if (!invoiceData.date) {
+    dateMatch = text.match(/(\d{3})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if (dateMatch) {
+      const rocYear = parseInt(dateMatch[1]);
+      const year = rocYear + 1911;
+      const month = dateMatch[2].padStart(2, '0');
+      const day = dateMatch[3].padStart(2, '0');
+      
+      const timeMatch = text.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+      if (timeMatch) {
+        const hour = timeMatch[1].padStart(2, '0');
+        const minute = timeMatch[2];
+        const second = timeMatch[3] ? timeMatch[3] : '00';
+        invoiceData.date = `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+      } else {
+        invoiceData.date = `${year}-${month}-${day} 00:00:00`;
+      }
+      Logger.log('✅ 找到日期（民國年）: ' + invoiceData.date);
+    }
+  }
+  
+  // ⭐ 3. 金額 (尋找 總計、合計、總額 等關鍵字後的數字)
+  const amountPatterns = [
+    /[總合]計[:：\s]*\$?\s*(\d{1,3}(?:,\d{3})*|\d+)/i,
+    /總額[:：\s]*\$?\s*(\d{1,3}(?:,\d{3})*|\d+)/i,
+    /TOTAL[:：\s]*\$?\s*(\d{1,3}(?:,\d{3})*|\d+)/i,
+    /應收[:：\s]*\$?\s*(\d{1,3}(?:,\d{3})*|\d+)/i
+  ];
+  
+  for (const pattern of amountPatterns) {
+    const amountMatch = text.match(pattern);
+    if (amountMatch) {
+      invoiceData.amount = amountMatch[1].replace(/,/g, '');
+      Logger.log('✅ 找到金額: ' + invoiceData.amount);
+      break;
+    }
+  }
+  
+  // ⭐ 4. 店家名稱 (通常在前幾行，且不是日期、發票號碼)
+  const lines = text.split('\n');
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    const line = lines[i].trim();
+    
+    // 排除日期、發票號碼、純數字行
+    if (line.length > 2 && 
+        !line.match(/^\d+$/) && 
+        !line.match(/[A-Z]{2}[-\s]?\d{8}/) &&
+        !line.match(/\d{3,4}[-\/]\d{1,2}[-\/]\d{1,2}/)) {
+      invoiceData.storeName = line;
+      Logger.log('✅ 找到店家名稱: ' + invoiceData.storeName);
+      break;
+    }
+  }
+  
+  Logger.log('📋 解析完成');
+  
+  return invoiceData;
+}
+
+/**
+ * 🧪 測試 OCR 功能
+ */
+function testInvoiceOCR() {
+  Logger.log('🧪 測試發票 OCR');
+  Logger.log('');
+  
+  // ⚠️ 這裡需要替換成實際的 Base64 圖片資料
+  const testImageBase64 = '/9j/4AAQSkZJRgABAQAAAQABAAD...'; // 替換成真實資料
+  
+  const result = processInvoiceOCR(testImageBase64, 'test_invoice.jpg');
+  
+  Logger.log('');
+  Logger.log('📤 測試結果:');
+  Logger.log(JSON.stringify(result, null, 2));
+  
+  if (result.ok) {
+    Logger.log('');
+    Logger.log('✅✅✅ OCR 測試成功！');
+  } else {
+    Logger.log('');
+    Logger.log('❌ OCR 測試失敗: ' + result.msg);
   }
 }
