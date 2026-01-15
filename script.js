@@ -4453,6 +4453,7 @@ async function submitAdvanceApplication() {
 }
 // ==================== 📄 報銷申請功能 ====================
 
+let isSubmitting = false;
 async function submitReimbursementApplication() {
     // 防止重複提交
     if (isSubmitting) {
