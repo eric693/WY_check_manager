@@ -4559,7 +4559,7 @@ async function submitReimbursementApplication() {
     console.log('   報銷金額:', amount);
     
     // 發送請求
-    const response = await fetch(API_URL, {
+    const response = await fetch(API_CONFIG.apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
