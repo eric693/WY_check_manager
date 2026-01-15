@@ -4499,7 +4499,7 @@ async function submitReimbursementApplication() {
     const note = document.getElementById('reimbursement-note')?.value.trim() || '';
     
     // ⭐⭐⭐ 關鍵：取得 Token
-    const token = sessionStorage.getItem('sToken');
+    const token = localStorage.getItem('sessionToken');
     
     console.log('🔑 Token:', token ? token.substring(0, 20) + '...' : '❌ 缺少');
     console.log('📋 表單資料:');
