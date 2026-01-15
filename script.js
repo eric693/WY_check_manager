@@ -4453,27 +4453,34 @@ async function submitAdvanceApplication() {
 }
 // ==================== 📄 報銷申請功能 ====================
 
+// ==================== 💰 費用管理系統 ====================
+
 // ⭐ 防止重複提交的全域變數
 let isSubmitting = false;
 
 async function submitReimbursementApplication() {
-  // 防止重複提交
+  console.log('🔍 當前 isSubmitting 狀態:', isSubmitting);
+  
   if (isSubmitting) {
     console.log('⚠️ 正在提交中，請勿重複點擊');
     return;
   }
   
+  console.log('✅ 開始處理提交');
   isSubmitting = true;
   
-  // ⭐⭐⭐ 使用明確的 ID 選取按鈕
-  const submitBtn = document.getElementById('submit-reimb-btn');
+  // ⭐⭐⭐ 關鍵修正：使用正確的 ID
+  const submitBtn = document.getElementById('submit-reimbursement-btn');  // ← 改這裡
   
-  // ⭐ 加入安全檢查
   if (!submitBtn) {
     console.error('❌ 找不到提交按鈕');
+    console.log('   HTML 中的按鈕 ID: submit-reimbursement-btn');
+    console.log('   是否存在:', !!document.getElementById('submit-reimbursement-btn'));
     isSubmitting = false;
     return;
   }
+  
+  console.log('✅ 找到按鈕:', submitBtn);
   
   const originalText = submitBtn.textContent;
   
@@ -4483,18 +4490,16 @@ async function submitReimbursementApplication() {
   try {
     console.log('💰 開始提交報銷申請');
     
-    const summary = document.getElementById('reimb-summary').value.trim();
-    const amount = document.getElementById('reimb-amount').value.trim();
-    const date = document.getElementById('reimb-date').value;
-    const invoiceNumber = document.getElementById('reimb-invoice-number')?.value.trim() || '';
-    const note = document.getElementById('reimb-note')?.value.trim() || '';
+    const summary = document.getElementById('reimbursement-summary').value.trim();
+    const amount = document.getElementById('reimbursement-amount').value.trim();
+    const date = document.getElementById('reimbursement-date').value;
+    const invoiceNumber = document.getElementById('reimbursement-invoice-number')?.value.trim() || '';
+    const note = document.getElementById('reimbursement-note')?.value.trim() || '';
     
-    // 取得 token
     const token = sessionStorage.getItem('sToken');
     
     console.log('🔑 Token:', token ? token.substring(0, 20) + '...' : '❌ 缺少');
     
-    // 驗證必填欄位
     if (!summary || !amount || !date) {
       showMessage('請填寫所有必填欄位', 'error');
       return;
@@ -4505,9 +4510,8 @@ async function submitReimbursementApplication() {
       return;
     }
     
-    console.log('📦 準備發送資料（不含發票圖片）...');
+    console.log('📦 準備發送資料...');
     
-    // 組裝請求資料
     const requestData = {
       action: 'submitReimbursement',
       token: token,
@@ -4524,7 +4528,6 @@ async function submitReimbursementApplication() {
     console.log('   費用摘要:', summary);
     console.log('   報銷金額:', amount);
     
-    // 發送請求
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -4541,17 +4544,16 @@ async function submitReimbursementApplication() {
     
     if (result.ok) {
       showMessage('報銷申請已送出！', 'success');
-      closeModal('reimbursement-modal');
       
       // 清空表單
-      document.getElementById('reimb-summary').value = '';
-      document.getElementById('reimb-amount').value = '';
-      document.getElementById('reimb-date').value = '';
-      if (document.getElementById('reimb-invoice-number')) {
-        document.getElementById('reimb-invoice-number').value = '';
+      document.getElementById('reimbursement-summary').value = '';
+      document.getElementById('reimbursement-amount').value = '';
+      document.getElementById('reimbursement-date').value = '';
+      if (document.getElementById('reimbursement-invoice-number')) {
+        document.getElementById('reimbursement-invoice-number').value = '';
       }
-      if (document.getElementById('reimb-note')) {
-        document.getElementById('reimb-note').value = '';
+      if (document.getElementById('reimbursement-note')) {
+        document.getElementById('reimbursement-note').value = '';
       }
       
       // 重新載入記錄
@@ -4566,14 +4568,15 @@ async function submitReimbursementApplication() {
     showMessage('系統錯誤：' + error.message, 'error');
     
   } finally {
-    // 恢復按鈕狀態（加入安全檢查）
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalText;
+    // 恢復按鈕狀態
+    const currentBtn = document.getElementById('submit-reimbursement-btn');  // ← 改這裡
+    if (currentBtn) {
+      currentBtn.disabled = false;
+      currentBtn.textContent = originalText;
     }
     
     isSubmitting = false;
-    console.log('✅ 按鈕已重新啟用');
+    console.log('✅ 按鈕已重新啟用，isSubmitting =', isSubmitting);
   }
 }
 /**
