@@ -1046,13 +1046,16 @@
                             </p>
                             
                             <div class="space-y-4">
-                                <!-- 上傳發票照片 -->
+                                <!-- 上傳發票照片（僅供參考，不會上傳到後台） -->
                                 <div>
                                     <label data-i18n="EXPENSE_INVOICE_UPLOAD_LABEL" 
                                         for="reimb-invoice-upload" 
                                         class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        上傳發票照片 <span class="text-red-500">*</span>
+                                        上傳發票照片（選填 - 僅供本地預覽）
                                     </label>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                        💡 提示：發票圖片僅用於前端預覽和 OCR 辨識，不會上傳到伺服器
+                                    </p>
                                     <div class="flex items-center space-x-3">
                                         <input type="file" 
                                             id="reimbursement-invoice-image" 
@@ -1066,7 +1069,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             </svg>
-                                            <span data-i18n="BTN_TAKE_PHOTO">拍照上傳</span>
+                                            <span data-i18n="BTN_TAKE_PHOTO">拍照預覽</span>
                                         </button>
                                         <span id="reimb-invoice-file-name" class="text-sm text-gray-500 dark:text-gray-400">
                                             尚未選擇檔案
