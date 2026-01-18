@@ -4525,7 +4525,7 @@ async function submitReimbursementApplication() {
       }
       
       // ✅ 發送 API 請求
-      const response = await fetch(`${API_BASE_URL}?action=submitReimbursement`, {
+      const response = await fetch(`${API_CONFIG.apiUrl}?action=submitReimbursement`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
