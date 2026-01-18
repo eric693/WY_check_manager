@@ -4457,175 +4457,124 @@ async function submitAdvanceApplication() {
 let isSubmitting = false;
 
 /**
- * ✅ 提交報銷申請（完整修正版）
+ * 📄 提交報銷申請（完整版 - 包含所有發票欄位）
  */
 async function submitReimbursementApplication() {
-  console.log('🔍 當前 isSubmitting 狀態:', isSubmitting);
-  
-  // 防止重複提交
-  if (isSubmitting) {
-    console.log('⚠️ 正在提交中，請勿重複點擊');
-    return;
-  }
-  
-  console.log('✅ 開始處理提交');
-  isSubmitting = true;
-  
-  // 取得按鈕
-  const submitBtn = document.getElementById('submit-reimbursement-btn');
-  
-  if (!submitBtn) {
-    console.error('❌ 找不到提交按鈕');
-    isSubmitting = false;
-    alert('系統錯誤：找不到提交按鈕');
-    return;
-  }
-  
-  console.log('✅ 找到按鈕:', submitBtn);
-  
-  const originalText = submitBtn.textContent;
-  
-  submitBtn.disabled = true;
-  submitBtn.textContent = '提交中...';
-  
-  try {
-    console.log('💰 開始提交報銷申請');
-    
-    // 取得表單資料
-    const summary = document.getElementById('reimbursement-summary')?.value.trim();
-    const amount = document.getElementById('reimbursement-amount')?.value.trim();
-    const date = document.getElementById('reimbursement-date')?.value;
-    const invoiceNumber = document.getElementById('reimbursement-invoice-number')?.value.trim() || '';
-    const note = document.getElementById('reimbursement-note')?.value.trim() || '';
-    
-    // ⭐⭐⭐ 關鍵：取得 Token
-    const token = localStorage.getItem('sessionToken');
-    
-    console.log('🔑 Token:', token ? token.substring(0, 20) + '...' : '❌ 缺少');
-    console.log('📋 表單資料:');
-    console.log('   摘要:', summary);
-    console.log('   金額:', amount);
-    console.log('   日期:', date);
-    
-    // ⭐ 驗證必填欄位
-    if (!summary || !amount || !date) {
-      const errorMsg = '請填寫所有必填欄位（日期、摘要、金額）';
-      console.error('❌', errorMsg);
+    try {
+      console.log('📄 開始提交報銷申請');
       
-      // 使用 alert 或 showMessage
-      if (typeof showMessage === 'function') {
-        showMessage(errorMsg, 'error');
-      } else {
-        alert(errorMsg);
-      }
-      return;
-    }
-    
-    // ⭐ 驗證 Token
-    if (!token) {
-      const errorMsg = '未登入或 Session 已過期，請重新登入';
-      console.error('❌', errorMsg);
+      // 取得表單資料
+      const date = document.getElementById('reimbursement-date').value;
+      const summary = document.getElementById('reimbursement-summary').value;
+      const amount = document.getElementById('reimbursement-amount').value;
+      const invoiceNumber = document.getElementById('reimbursement-invoice-number').value;
+      const note = document.getElementById('reimbursement-note').value;
       
-      if (typeof showMessage === 'function') {
-        showMessage(errorMsg, 'error');
-      } else {
-        alert(errorMsg);
+      // ⭐⭐⭐ 取得發票詳細資訊
+      const invoiceTime = document.getElementById('reimbursement-invoice-time').value;
+      const sellerTaxId = document.getElementById('reimbursement-seller-tax-id').value;
+      const randomCode = document.getElementById('reimbursement-random-code').value;
+      const period = document.getElementById('reimbursement-period').value;
+      const storeAddress = document.getElementById('reimbursement-store-address').value;
+      const storePhone = document.getElementById('reimbursement-store-phone').value;
+      
+      // 驗證必填欄位
+      if (!date || !summary || !amount) {
+        showNotification('❌ 請填寫所有必填欄位（日期、摘要、金額）', 'error');
+        return;
       }
       
-      // 跳轉到登入頁
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-      return;
-    }
-    
-    console.log('📦 準備發送資料...');
-    
-    // 組裝請求資料
-    const requestData = {
-      action: 'submitReimbursement',
-      token: token,
-      date: date,
-      summary: summary,
-      amount: amount,
-      invoiceNumber: invoiceNumber,
-      note: note
-    };
-    
-    console.log('📤 發送請求...');
-    console.log('   Token:', token.substring(0, 20) + '...');
-    console.log('   費用日期:', date);
-    console.log('   費用摘要:', summary);
-    console.log('   報銷金額:', amount);
-    
-    // 發送請求
-    const response = await fetch(API_CONFIG.apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestData)
-    });
-    
-    console.log('📥 收到回應，狀態:', response.status);
-    
-    const result = await response.json();
-    
-    console.log('✅ API 回應:', result);
-    
-    if (result.ok) {
-      const successMsg = '報銷申請已送出！';
-      console.log('✅', successMsg);
+      // 取得發票圖片（如果有）
+      const invoiceImageInput = document.getElementById('reimbursement-invoice-image');
+      const invoices = [];
       
-      if (typeof showMessage === 'function') {
-        showMessage(successMsg, 'success');
-      } else {
-        alert(successMsg);
+      if (invoiceImageInput && invoiceImageInput.files && invoiceImageInput.files.length > 0) {
+        const file = invoiceImageInput.files[0];
+        const base64 = await fileToBase64(file);
+        
+        // ✅ 組裝完整的發票資料
+        invoices.push({
+          invoiceNumber: invoiceNumber,
+          date: date,
+          time: invoiceTime,              // ⭐ 新增
+          amount: amount,
+          storeName: summary.split(' - ')[0] || '',
+          sellerTaxId: sellerTaxId,       // ⭐ 新增
+          randomCode: randomCode,         // ⭐ 新增
+          period: period,                 // ⭐ 新增
+          storeAddress: storeAddress,     // ⭐ 新增 (可選)
+          storePhone: storePhone,         // ⭐ 新增 (可選)
+          imageData: base64,
+          fileName: file.name
+        });
       }
       
-      // 清空表單
-      document.getElementById('reimbursement-summary').value = '';
-      document.getElementById('reimbursement-amount').value = '';
-      document.getElementById('reimbursement-date').value = '';
-      if (document.getElementById('reimbursement-invoice-number')) {
+      console.log('📋 準備提交的資料:');
+      console.log('   日期:', date);
+      console.log('   摘要:', summary);
+      console.log('   金額:', amount);
+      console.log('   發票數量:', invoices.length);
+      
+      if (invoices.length > 0) {
+        console.log('   發票詳情:');
+        console.log('     號碼:', invoices[0].invoiceNumber);
+        console.log('     時間:', invoices[0].time);
+        console.log('     統編:', invoices[0].sellerTaxId);
+        console.log('     隨機碼:', invoices[0].randomCode);
+        console.log('     期別:', invoices[0].period);
+      }
+      
+      // ✅ 發送 API 請求
+      const response = await fetch(`${API_BASE_URL}?action=submitReimbursement`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: getStoredToken(),
+          date: date,
+          summary: summary,
+          amount: amount,
+          note: note,
+          invoices: invoices  // ⭐ 包含完整發票陣列
+        })
+      });
+      
+      const result = await response.json();
+      
+      console.log('📥 後端回應:', result);
+      
+      if (result.ok) {
+        showNotification('✅ 報銷申請已提交', 'success');
+        
+        // 清空表單
+        document.getElementById('reimbursement-date').value = '';
+        document.getElementById('reimbursement-summary').value = '';
+        document.getElementById('reimbursement-amount').value = '';
         document.getElementById('reimbursement-invoice-number').value = '';
-      }
-      if (document.getElementById('reimbursement-note')) {
         document.getElementById('reimbursement-note').value = '';
-      }
-      
-      // 重新載入記錄
-      if (typeof loadReimbursementRecords === 'function') {
+        document.getElementById('reimbursement-invoice-time').value = '';
+        document.getElementById('reimbursement-seller-tax-id').value = '';
+        document.getElementById('reimbursement-random-code').value = '';
+        document.getElementById('reimbursement-period').value = '';
+        
+        if (invoiceImageInput) {
+          invoiceImageInput.value = '';
+        }
+        
+        // 重新載入記錄
         loadReimbursementRecords();
+        
+      } else {
+        showNotification('❌ 提交失敗：' + result.msg, 'error');
       }
       
-    } else {
-      throw new Error(result.msg || '提交失敗');
+    } catch (error) {
+      console.error('❌ 提交報銷申請失敗:', error);
+      showNotification('❌ 系統錯誤：' + error.message, 'error');
     }
-    
-  } catch (error) {
-    console.error('❌ 發生錯誤:', error);
-    
-    const errorMsg = '系統錯誤：' + error.message;
-    
-    if (typeof showMessage === 'function') {
-      showMessage(errorMsg, 'error');
-    } else {
-      alert(errorMsg);
-    }
-    
-  } finally {
-    // 恢復按鈕狀態
-    const currentBtn = document.getElementById('submit-reimbursement-btn');
-    if (currentBtn) {
-      currentBtn.disabled = false;
-      currentBtn.textContent = originalText;
-    }
-    
-    isSubmitting = false;
-    console.log('✅ 按鈕已重新啟用，isSubmitting =', isSubmitting);
-  }
 }
+
 /**
  * ⭐ 新增：圖片壓縮函數
  */
@@ -5654,126 +5603,66 @@ async function processInvoiceOCR(file) {
 }
 
 /**
- * ✅ 將 OCR 辨識的資料填入報銷表單（完整版 - 12 欄位）
+ * 📝 將 OCR 辨識結果填入報銷表單（完整版）
  */
 function fillReimbursementForm() {
-    if (!currentOCRData) {
-        showNotification('沒有可用的辨識資料', 'error');
-        return;
+    try {
+      console.log('📝 開始填入報銷表單');
+      
+      // 從 OCR 結果取得資料
+      const invoiceNumber = document.getElementById('ocr-invoice-number').value;
+      const date = document.getElementById('ocr-date').value;
+      const time = document.getElementById('ocr-time').value;
+      const amount = document.getElementById('ocr-amount').value;
+      const store = document.getElementById('ocr-store').value;
+      
+      // ⭐⭐⭐ 從詳細資訊取得額外欄位
+      const period = document.getElementById('ocr-period').value;
+      const randomCode = document.getElementById('ocr-random-code').value;
+      const sellerTaxId = document.getElementById('ocr-seller-tax-id').value;
+      const storeAddress = document.getElementById('ocr-store-address').value;
+      const storePhone = document.getElementById('ocr-store-phone').value;
+      
+      console.log('📋 OCR 資料:');
+      console.log('   發票號碼:', invoiceNumber);
+      console.log('   日期:', date);
+      console.log('   時間:', time);
+      console.log('   金額:', amount);
+      console.log('   店家:', store);
+      console.log('   期別:', period);
+      console.log('   隨機碼:', randomCode);
+      console.log('   統編:', sellerTaxId);
+      
+      // ✅ 填入報銷表單
+      document.getElementById('reimbursement-date').value = date;
+      document.getElementById('reimbursement-amount').value = amount;
+      document.getElementById('reimbursement-invoice-number').value = invoiceNumber;
+      document.getElementById('reimbursement-summary').value = `${store} - 消費`;
+      
+      // ✅ 填入發票詳細資訊
+      document.getElementById('reimbursement-invoice-time').value = time;
+      document.getElementById('reimbursement-seller-tax-id').value = sellerTaxId;
+      document.getElementById('reimbursement-random-code').value = randomCode;
+      document.getElementById('reimbursement-period').value = period;
+      document.getElementById('reimbursement-store-address').value = storeAddress;
+      document.getElementById('reimbursement-store-phone').value = storePhone;
+      
+      // ✅ 顯示成功訊息
+      showNotification('✅ 已填入表單，請檢查資料後提交', 'success');
+      
+      // 自動展開詳細資訊區塊
+      const detailsElement = document.querySelector('details');
+      if (detailsElement) {
+        detailsElement.open = true;
+      }
+      
+      console.log('✅ 表單填入完成');
+      
+    } catch (error) {
+      console.error('❌ 填入表單失敗:', error);
+      showNotification('❌ 填入表單失敗：' + error.message, 'error');
     }
-    
-    console.log('📝 開始填入報銷表單（12 欄位版）');
-    console.log('   OCR 資料:', currentOCRData);
-    
-    // ========== 基本資訊 (4 欄位) ==========
-    
-    // 1. 填入費用日期
-    if (currentOCRData.invoiceDate) {
-        const dateInput = document.getElementById('reimbursement-date');
-        if (dateInput) {
-            dateInput.value = currentOCRData.invoiceDate;
-            console.log('  ✓ 已填入日期:', currentOCRData.invoiceDate);
-        }
-    }
-    
-    // 2. 填入費用摘要（店家名稱）
-    if (currentOCRData.storeName) {
-        const summaryInput = document.getElementById('reimbursement-summary');
-        if (summaryInput) {
-            summaryInput.value = currentOCRData.storeName;
-            console.log('  ✓ 已填入摘要:', currentOCRData.storeName);
-        }
-    }
-    
-    // 3. 填入金額
-    if (currentOCRData.amount) {
-        const amountInput = document.getElementById('reimbursement-amount');
-        if (amountInput) {
-            const cleanAmount = String(currentOCRData.amount).replace(/[^0-9]/g, '');
-            amountInput.value = cleanAmount;
-            console.log('  ✓ 已填入金額:', cleanAmount);
-        }
-    }
-    
-    // 4. 填入發票號碼
-    if (currentOCRData.invoiceNumber) {
-        const invoiceNumberInput = document.getElementById('reimbursement-invoice-number');
-        if (invoiceNumberInput) {
-            invoiceNumberInput.value = currentOCRData.invoiceNumber;
-            console.log('  ✓ 已填入發票號碼:', currentOCRData.invoiceNumber);
-        }
-    }
-    
-    // ========== ⭐ 新增欄位 (8 欄位) ==========
-    
-    // 5. 發票時間（如果有對應的輸入框）
-    if (currentOCRData.invoiceTime) {
-        const timeInput = document.getElementById('reimbursement-invoice-time');
-        if (timeInput) {
-            timeInput.value = currentOCRData.invoiceTime;
-            console.log('  ✓ 已填入發票時間:', currentOCRData.invoiceTime);
-        }
-    }
-    
-    // 6. 店家地址（如果有對應的輸入框）
-    if (currentOCRData.storeAddress) {
-        const addressInput = document.getElementById('reimbursement-store-address');
-        if (addressInput) {
-            addressInput.value = currentOCRData.storeAddress;
-            console.log('  ✓ 已填入店家地址:', currentOCRData.storeAddress);
-        }
-    }
-    
-    // 7. 店家電話（如果有對應的輸入框）
-    if (currentOCRData.storePhone) {
-        const phoneInput = document.getElementById('reimbursement-store-phone');
-        if (phoneInput) {
-            phoneInput.value = currentOCRData.storePhone;
-            console.log('  ✓ 已填入店家電話:', currentOCRData.storePhone);
-        }
-    }
-    
-    // 8. 賣方統編（如果有對應的輸入框）
-    if (currentOCRData.sellerTaxId) {
-        const taxIdInput = document.getElementById('reimbursement-seller-tax-id');
-        if (taxIdInput) {
-            taxIdInput.value = currentOCRData.sellerTaxId;
-            console.log('  ✓ 已填入賣方統編:', currentOCRData.sellerTaxId);
-        }
-    }
-    
-    // 9. 隨機碼（如果有對應的輸入框）
-    if (currentOCRData.randomCode) {
-        const randomCodeInput = document.getElementById('reimbursement-random-code');
-        if (randomCodeInput) {
-            randomCodeInput.value = currentOCRData.randomCode;
-            console.log('  ✓ 已填入隨機碼:', currentOCRData.randomCode);
-        }
-    }
-    
-    // 10. 期別（如果有對應的輸入框）
-    if (currentOCRData.period) {
-        const periodInput = document.getElementById('reimbursement-period');
-        if (periodInput) {
-            periodInput.value = currentOCRData.period;
-            console.log('  ✓ 已填入期別:', currentOCRData.period);
-        }
-    }
-    
-    // ========== 完成處理 ==========
-    
-    // 捲動到報銷表單區域
-    const reimbursementTitle = document.querySelector('[data-i18n="EXPENSE_REIMBURSEMENT_TITLE"]');
-    if (reimbursementTitle) {
-        const card = reimbursementTitle.closest('.card');
-        if (card) {
-            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
-    
-    showNotification('✅ 已自動填入表單（發票資訊僅供參考）', 'success');
-    console.log('✅ 表單填入完成（12 欄位）');
-}
+  }
 /**
  * 重置 OCR 狀態
  */
