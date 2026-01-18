@@ -5606,30 +5606,27 @@ async function processInvoiceOCR(file) {
                 // 隱藏載入中
                 if (loadingEl) loadingEl.style.display = 'none';
                 
-                // ⭐⭐⭐ 顯示所有辨識欄位
+                // 在 processInvoiceOCR 函數中，修改填入欄位的部分
                 if (successEl) {
                     successEl.style.display = 'block';
                     
                     const fields = {
-                        // 主要資訊
-                        'ocr-invoice-number': ocrData.invoiceNumber || '-',
-                        'ocr-date': ocrData.invoiceDate || '-',
-                        'ocr-time': ocrData.invoiceTime || '-',
-                        'ocr-amount': ocrData.amount ? `NT$ ${parseInt(ocrData.amount).toLocaleString()}` : '-',
-                        'ocr-store': ocrData.storeName || '-',
-                        
-                        // 詳細資訊
-                        'ocr-period': ocrData.period || '-',
-                        'ocr-random-code': ocrData.randomCode || '-',
-                        'ocr-seller-tax-id': ocrData.sellerTaxId || '-',
-                        'ocr-store-address': ocrData.storeAddress || '-',
-                        'ocr-store-phone': ocrData.storePhone || '-'
+                        'ocr-invoice-number': ocrData.invoiceNumber || '',
+                        'ocr-date': ocrData.invoiceDate || '',
+                        'ocr-time': ocrData.invoiceTime || '',
+                        'ocr-amount': ocrData.amount || '',
+                        'ocr-store': ocrData.storeName || '',
+                        'ocr-period': ocrData.period || '',
+                        'ocr-random-code': ocrData.randomCode || '',
+                        'ocr-seller-tax-id': ocrData.sellerTaxId || '',
+                        'ocr-store-address': ocrData.storeAddress || '',
+                        'ocr-store-phone': ocrData.storePhone || ''
                     };
                     
                     for (const [id, value] of Object.entries(fields)) {
                         const el = document.getElementById(id);
                         if (el) {
-                            el.textContent = value;
+                            el.value = value;  // 改用 .value 而非 .textContent
                             console.log(`  ✓ 已填入 ${id}: ${value}`);
                         }
                     }
@@ -5823,4 +5820,89 @@ function toggleOCRDetails() {
         detailsDiv.classList.add('hidden');
         toggleIcon.textContent = '▶';
     }
+}
+
+
+/**
+ * ✅ 從可編輯欄位填入報銷表單（新版）
+ */
+function fillReimbursementFormFromEditable() {
+    console.log('📝 從可編輯欄位填入報銷表單');
+    
+    // 從可編輯的輸入框取得值
+    const invoiceNumber = document.getElementById('ocr-invoice-number')?.value || '';
+    const date = document.getElementById('ocr-date')?.value || '';
+    const time = document.getElementById('ocr-time')?.value || '';
+    const amount = document.getElementById('ocr-amount')?.value || '';
+    const store = document.getElementById('ocr-store')?.value || '';
+    const period = document.getElementById('ocr-period')?.value || '';
+    const randomCode = document.getElementById('ocr-random-code')?.value || '';
+    const sellerTaxId = document.getElementById('ocr-seller-tax-id')?.value || '';
+    const storeAddress = document.getElementById('ocr-store-address')?.value || '';
+    const storePhone = document.getElementById('ocr-store-phone')?.value || '';
+    
+    // 填入報銷表單
+    if (date) {
+        const dateInput = document.getElementById('reimbursement-date');
+        if (dateInput) dateInput.value = date;
+    }
+    
+    if (store) {
+        const summaryInput = document.getElementById('reimbursement-summary');
+        if (summaryInput) summaryInput.value = store;
+    }
+    
+    if (amount) {
+        const amountInput = document.getElementById('reimbursement-amount');
+        if (amountInput) {
+            const cleanAmount = String(amount).replace(/[^0-9]/g, '');
+            amountInput.value = cleanAmount;
+        }
+    }
+    
+    if (invoiceNumber) {
+        const invoiceNumberInput = document.getElementById('reimbursement-invoice-number');
+        if (invoiceNumberInput) invoiceNumberInput.value = invoiceNumber;
+    }
+    
+    if (time) {
+        const timeInput = document.getElementById('reimbursement-invoice-time');
+        if (timeInput) timeInput.value = time;
+    }
+    
+    if (storeAddress) {
+        const addressInput = document.getElementById('reimbursement-store-address');
+        if (addressInput) addressInput.value = storeAddress;
+    }
+    
+    if (storePhone) {
+        const phoneInput = document.getElementById('reimbursement-store-phone');
+        if (phoneInput) phoneInput.value = storePhone;
+    }
+    
+    if (sellerTaxId) {
+        const taxIdInput = document.getElementById('reimbursement-seller-tax-id');
+        if (taxIdInput) taxIdInput.value = sellerTaxId;
+    }
+    
+    if (randomCode) {
+        const randomCodeInput = document.getElementById('reimbursement-random-code');
+        if (randomCodeInput) randomCodeInput.value = randomCode;
+    }
+    
+    if (period) {
+        const periodInput = document.getElementById('reimbursement-period');
+        if (periodInput) periodInput.value = period;
+    }
+    
+    // 捲動到報銷表單
+    const reimbursementTitle = document.querySelector('[data-i18n="EXPENSE_REIMBURSEMENT_TITLE"]');
+    if (reimbursementTitle) {
+        const card = reimbursementTitle.closest('.card');
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    
+    showNotification('✅ 已填入表單（可繼續手動調整）', 'success');
 }

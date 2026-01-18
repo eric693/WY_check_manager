@@ -879,31 +879,59 @@
                                     ✅ 辨識成功！
                                 </p>
                                 
-                                <!-- 主要資訊 -->
-                                <div class="grid grid-cols-2 gap-3 text-sm bg-white dark:bg-gray-800 p-3 rounded-lg">
-                                    <div class="col-span-2 border-b pb-2 mb-2">
-                                        <span class="text-gray-600 dark:text-gray-300">發票號碼：</span>
-                                        <span id="ocr-invoice-number" class="font-bold text-lg text-gray-800 dark:text-white"></span>
+                                <!-- 主要資訊 - 改為可編輯輸入框 -->
+                                <div class="grid grid-cols-1 gap-3 bg-white dark:bg-gray-800 p-4 rounded-lg">
+                                    
+                                    <!-- 發票號碼 -->
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                            發票號碼
+                                        </label>
+                                        <input type="text" 
+                                            id="ocr-invoice-number" 
+                                            class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold text-lg focus:ring-2 focus:ring-blue-500">
                                     </div>
                                     
-                                    <div>
-                                        <span class="text-gray-600 dark:text-gray-300">日期：</span>
-                                        <span id="ocr-date" class="font-bold text-gray-800 dark:text-white"></span>
+                                    <!-- 日期與時間 -->
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                                日期
+                                            </label>
+                                            <input type="date" 
+                                                id="ocr-date" 
+                                                class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold focus:ring-2 focus:ring-blue-500">
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                                時間
+                                            </label>
+                                            <input type="time" 
+                                                id="ocr-time" 
+                                                class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold focus:ring-2 focus:ring-blue-500">
+                                        </div>
                                     </div>
                                     
-                                    <div>
-                                        <span class="text-gray-600 dark:text-gray-300">時間：</span>
-                                        <span id="ocr-time" class="font-bold text-gray-800 dark:text-white"></span>
-                                    </div>
-                                    
-                                    <div>
-                                        <span class="text-gray-600 dark:text-gray-300">金額：</span>
-                                        <span id="ocr-amount" class="font-bold text-lg text-green-600 dark:text-green-400"></span>
-                                    </div>
-                                    
-                                    <div>
-                                        <span class="text-gray-600 dark:text-gray-300">店家：</span>
-                                        <span id="ocr-store" class="font-bold text-gray-800 dark:text-white"></span>
+                                    <!-- 金額與店家 -->
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                                金額
+                                            </label>
+                                            <input type="number" 
+                                                id="ocr-amount" 
+                                                class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold text-lg text-green-600 dark:text-green-400 focus:ring-2 focus:ring-blue-500">
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                                店家
+                                            </label>
+                                            <input type="text" 
+                                                id="ocr-store" 
+                                                class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold focus:ring-2 focus:ring-blue-500">
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -915,32 +943,78 @@
                                         <span>查看詳細資訊</span>
                                     </button>
                                     
-                                    <div id="ocr-details" class="hidden mt-3 space-y-2 text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                                        <div class="grid grid-cols-2 gap-2">
+                                    <div id="ocr-details" class="hidden mt-3 space-y-3 bg-gray-50 dark:bg-gray-800 p-3 rounded">
+                                        
+                                        <!-- 期別與隨機碼 -->
+                                        <div class="grid grid-cols-2 gap-3">
                                             <div>
-                                                <span class="text-gray-600 dark:text-gray-400">期別：</span>
-                                                <span id="ocr-period" class="text-gray-800 dark:text-white"></span>
+                                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                    期別
+                                                </label>
+                                                <input type="text" 
+                                                    id="ocr-period" 
+                                                    class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500">
                                             </div>
+                                            
                                             <div>
-                                                <span class="text-gray-600 dark:text-gray-400">隨機碼：</span>
-                                                <span id="ocr-random-code" class="text-gray-800 dark:text-white"></span>
+                                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                    隨機碼
+                                                </label>
+                                                <input type="text" 
+                                                    id="ocr-random-code" 
+                                                    maxlength="4"
+                                                    class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500">
                                             </div>
-                                            <div class="col-span-2">
-                                                <span class="text-gray-600 dark:text-gray-400">賣方統編：</span>
-                                                <span id="ocr-seller-tax-id" class="text-gray-800 dark:text-white"></span>
-                                            </div>
-                                            <div class="col-span-2">
-                                                <span class="text-gray-600 dark:text-gray-400">店家地址：</span>
-                                                <span id="ocr-store-address" class="text-gray-800 dark:text-white"></span>
-                                            </div>
-                                            <div class="col-span-2">
-                                                <span class="text-gray-600 dark:text-gray-400">店家電話：</span>
-                                                <span id="ocr-store-phone" class="text-gray-800 dark:text-white"></span>
-                                            </div>
+                                        </div>
+                                        
+                                        <!-- 賣方統編 -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                賣方統編
+                                            </label>
+                                            <input type="text" 
+                                                id="ocr-seller-tax-id" 
+                                                maxlength="8"
+                                                class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                        </div>
+                                        
+                                        <!-- 店家地址 -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                店家地址
+                                            </label>
+                                            <input type="text" 
+                                                id="ocr-store-address" 
+                                                class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                        </div>
+                                        
+                                        <!-- 店家電話 -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                                店家電話
+                                            </label>
+                                            <input type="tel" 
+                                                id="ocr-store-phone" 
+                                                class="w-full p-2 text-sm border border-gray-300 dark-md dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500">
                                         </div>
                                     </div>
                                 </div>
                                 
+                                <!-- 操作按鈕 -->
+                                <div class="grid grid-cols-2 gap-3 mt-4">
+                                    <button onclick="fillReimbursementFormFromEditable()"
+                                            data-i18n="BTN_FILL_FORM"
+                                            class="py-2 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold hover:from-green-600 hover:to-green-700 transition-all">
+                                        📝 填入表單
+                                    </button>
+                                    <button onclick="resetInvoiceOCR()"
+                                            data-i18n="BTN_SCAN_AGAIN"
+                                            class="py-2 px-4 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg font-bold hover:from-gray-600 hover:to-gray-700 transition-all">
+                                        🔄 重新辨識
+                                    </button>
+                                </div>
+                            </div>
+                               
                                 <!-- 操作按鈕 -->
                                 <div class="grid grid-cols-2 gap-3 mt-4">
                                     <button onclick="fillReimbursementForm()"
@@ -1898,7 +1972,7 @@
             </div>
             <footer class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
                 <p>
-                    <span data-i18n="APP_TITLE">出勤管家</span> v4.4.1 |
+                    <span data-i18n="APP_TITLE">出勤管家</span> v4.4.2 |
                     <span class="text-gray-400 dark:text-gray-500">
                     <a data-i18n="FOOTER_CREDITS" href="https://github.com/0rigind1865-bit/Attendance-System"
                         class="hover:underline hover:text-indigo-600 dark:hover:text-indigo-400">
