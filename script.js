@@ -5911,11 +5911,19 @@ async function processInvoiceOCRBatch(file, index) {
     try {
         console.log(`🔍 處理第 ${index + 1} 張發票: ${file.name}`);
         
+        // ⭐⭐⭐ 修正：使用 API_CONFIG.apiUrl
+        const apiUrl = API_CONFIG.apiUrl;
+        
+        console.log('📡 API URL:', apiUrl);
+        
         // 轉換為 Base64
+        console.log('📷 開始轉換圖片...');
         const base64Image = await fileToBase64(file);
+        console.log('✅ Base64 轉換完成，長度:', base64Image.length);
         
         // 呼叫 OCR API
-        const response = await fetch(`${API_BASE_URL}`, {
+        console.log('🚀 發送 OCR 請求...');
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -5928,6 +5936,8 @@ async function processInvoiceOCRBatch(file, index) {
             })
         });
         
+        console.log('📥 收到回應，狀態:', response.status);
+        
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -5937,7 +5947,6 @@ async function processInvoiceOCRBatch(file, index) {
         console.log(`📤 第 ${index + 1} 張 OCR 結果:`, result);
         
         if (result.ok && result.data) {
-            // ⭐⭐⭐ 關鍵：明確設定 success 為 true
             return {
                 success: true,
                 ocrData: result.data,
@@ -5945,7 +5954,6 @@ async function processInvoiceOCRBatch(file, index) {
                 fileName: file.name
             };
         } else {
-            // OCR 失敗
             return {
                 success: false,
                 error: result.msg || '辨識失敗',
@@ -6261,7 +6269,7 @@ async function submitSingleBatchInvoice(index) {
         console.log('   API URL:', API_BASE_URL);
         console.log('   Session Token:', sessionToken ? '有' : '無');
         
-        const response = await fetch(`${API_BASE_URL}`, {
+        const response = await fetch(API_CONFIG.apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
