@@ -6027,7 +6027,6 @@ function createBatchInvoiceCard(result, index) {
             <!-- 標題列 -->
             <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-600">
                 <div class="flex items-center space-x-2">
-                    <span class="text-2xl">✅</span>
                     <div>
                         <p class="font-bold text-gray-800 dark:text-white">
                             ${result.fileName}
