@@ -5905,60 +5905,63 @@ async function handleBatchInvoiceUpload(event) {
 }
 
 /**
- * ⭐ 新增：批次 OCR 處理（不顯示單一結果）
+ * ⭐ 修正：處理單張發票的 OCR（批次版）
  */
 async function processInvoiceOCRBatch(file, index) {
-    console.log(`🧾 處理第 ${index + 1} 張發票: ${file.name}`);
-    
     try {
+        console.log(`🔍 處理第 ${index + 1} 張發票: ${file.name}`);
+        
         // 轉換為 Base64
-        const base64Data = await fileToBase64(file);
+        const base64Image = await fileToBase64(file);
         
-        // 取得 Session Token
-        const sessionToken = localStorage.getItem('sessionToken');
-        
-        if (!sessionToken) {
-            throw new Error('請先登入');
-        }
-        
-        // 發送 API 請求
-        const requestData = {
-            action: 'invoiceOCR',
-            imageData: base64Data,
-            fileName: file.name,
-            token: sessionToken
-        };
-        
-        const response = await fetch(API_CONFIG.apiUrl, {
+        // 呼叫 OCR API
+        const response = await fetch(`${API_BASE_URL}`, {
             method: 'POST',
-            body: JSON.stringify(requestData),
-            redirect: 'follow'
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'invoiceOCR',
+                token: sessionToken,
+                imageData: base64Image,
+                fileName: file.name
+            })
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const result = await response.json();
         
-        // 處理嵌套的資料結構
-        let ocrData = null;
+        console.log(`📤 第 ${index + 1} 張 OCR 結果:`, result);
         
         if (result.ok && result.data) {
-            if (result.data.data && typeof result.data.data === 'object') {
-                ocrData = result.data.data;
-            } else {
-                ocrData = result.data;
-            }
-            
-            return ocrData;
+            // ⭐⭐⭐ 關鍵：明確設定 success 為 true
+            return {
+                success: true,
+                ocrData: result.data,
+                file: file,
+                fileName: file.name
+            };
         } else {
-            throw new Error(result.msg || 'OCR 處理失敗');
+            // OCR 失敗
+            return {
+                success: false,
+                error: result.msg || '辨識失敗',
+                file: file,
+                fileName: file.name
+            };
         }
         
     } catch (error) {
-        console.error(`處理 ${file.name} 失敗:`, error);
-        return null;
+        console.error(`❌ 第 ${index + 1} 張發票處理失敗:`, error);
+        return {
+            success: false,
+            error: error.message,
+            file: file,
+            fileName: file.name
+        };
     }
 }
 
@@ -5991,165 +5994,152 @@ function renderBatchInvoiceResults() {
 }
 
 /**
- * ⭐ 新增:創建發票卡片
+ * ⭐ 建立批次發票卡片
  */
 function createBatchInvoiceCard(result, index) {
     const card = document.createElement('div');
-    card.className = 'bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-600 p-4';
-    card.id = `batch-invoice-${index}`;
+    card.id = `batch-invoice-card-${index}`;
+    card.className = 'bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700';
     
-    if (result.status === 'failed') {
-        // 失敗卡片
-        card.innerHTML = `
-            <div class="flex items-center justify-between">
-                <div class="flex-1">
-                    <p class="font-bold text-red-600 dark:text-red-400">
-                        ❌ ${result.fileName}
-                    </p>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        ${result.error || '辨識失敗'}
-                    </p>
-                </div>
-                <button onclick="removeBatchInvoice(${index})"
-                        class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold">
-                    移除
-                </button>
-            </div>
-        `;
-        return card;
-    }
+    // ⭐ 修正：檢查 success 狀態
+    const isSuccess = result.success === true;
+    const statusIcon = isSuccess ? '✅' : '❌';
+    const statusText = isSuccess ? '辨識成功' : '辨識失敗';
+    const statusColor = isSuccess ? 'text-green-600' : 'text-red-600';
     
-    // 成功卡片（可編輯）
-    const data = result.ocrData;
-    
-    card.innerHTML = `
-        <div class="space-y-3">
-            <!-- 標題列 -->
-            <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-600">
-                <div class="flex items-center space-x-2">
-                    <div>
-                        <p class="font-bold text-gray-800 dark:text-white">
-                            ${result.fileName}
-                        </p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            點擊欄位可編輯內容
-                        </p>
-                    </div>
-                </div>
-                <button onclick="removeBatchInvoice(${index})"
-                        class="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-semibold">
-                    移除
-                </button>
-            </div>
-            
-            <!-- 可編輯欄位 -->
-            <div class="grid grid-cols-2 gap-3">
-                <!-- 發票號碼 -->
-                <div class="col-span-2">
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                        發票號碼
-                    </label>
-                    <input type="text" 
-                           id="batch-invoice-number-${index}" 
-                           value="${data.invoiceNumber || ''}"
-                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold">
-                </div>
-                
-                <!-- 日期與時間 -->
+    let cardContent = `
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">${statusIcon}</span>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                        日期
-                    </label>
-                    <input type="date" 
-                           id="batch-date-${index}" 
-                           value="${data.invoiceDate || ''}"
-                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                        時間
-                    </label>
-                    <input type="time" 
-                           id="batch-time-${index}" 
-                           value="${data.invoiceTime || ''}"
-                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
-                </div>
-                
-                <!-- 金額與店家 -->
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                        金額
-                    </label>
-                    <input type="number" 
-                           id="batch-amount-${index}" 
-                           value="${data.amount || ''}"
-                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold text-green-600 dark:text-green-400">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                        店家
-                    </label>
-                    <input type="text" 
-                           id="batch-store-${index}" 
-                           value="${data.storeName || ''}"
-                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
-                </div>
-                
-                <!-- 詳細資訊（摺疊） -->
-                <div class="col-span-2">
-                    <details class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                        <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">
-                            📋 詳細資訊
-                        </summary>
-                        
-                        <div class="grid grid-cols-2 gap-3 mt-3">
-                            <div>
-                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                    期別
-                                </label>
-                                <input type="text" 
-                                       id="batch-period-${index}" 
-                                       value="${data.period || ''}"
-                                       class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                    隨機碼
-                                </label>
-                                <input type="text" 
-                                       id="batch-random-code-${index}" 
-                                       value="${data.randomCode || ''}"
-                                       maxlength="4"
-                                       class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
-                            </div>
-                            
-                            <div class="col-span-2">
-                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                    賣方統編
-                                </label>
-                                <input type="text" 
-                                       id="batch-seller-tax-id-${index}" 
-                                       value="${data.sellerTaxId || ''}"
-                                       maxlength="8"
-                                       class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
-                            </div>
-                        </div>
-                    </details>
+                    <h3 class="font-bold ${statusColor}">${statusText}</h3>
+                    <p class="text-xs text-gray-500">${result.fileName}</p>
                 </div>
             </div>
-            
-            <!-- 單筆送出按鈕 -->
-            <button onclick="submitSingleBatchInvoice(${index})"
-                    id="batch-submit-${index}"
-                    class="w-full py-2 px-4 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg font-bold hover:from-indigo-600 hover:to-indigo-700 transition-all">
-                📤 送出此筆
+            <button onclick="removeBatchInvoice(${index})" 
+                    class="text-red-500 hover:text-red-700 font-bold">
+                移除
             </button>
         </div>
     `;
     
+    if (isSuccess && result.ocrData) {
+        // ⭐ 成功：顯示可編輯表單
+        const data = result.ocrData;
+        cardContent += `
+            <!-- 表單內容 -->
+            <div class="space-y-3">
+                <!-- 發票號碼 -->
+                <div>
+                    <label class="block text-xs font-medium mb-1">發票號碼</label>
+                    <input type="text" 
+                           id="batch-invoice-number-${index}" 
+                           value="${data.invoiceNumber || ''}"
+                           class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                
+                <!-- 日期與時間 -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">日期 *</label>
+                        <input type="date" 
+                               id="batch-invoice-date-${index}" 
+                               value="${data.invoiceDate || ''}"
+                               class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                               required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">時間</label>
+                        <input type="time" 
+                               id="batch-invoice-time-${index}" 
+                               value="${data.invoiceTime || ''}"
+                               class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+                
+                <!-- 金額與店家 -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">金額 *</label>
+                        <input type="number" 
+                               id="batch-invoice-amount-${index}" 
+                               value="${data.amount || ''}"
+                               class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                               required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">店家 *</label>
+                        <input type="text" 
+                               id="batch-invoice-store-${index}" 
+                               value="${data.storeName || ''}"
+                               class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                               required>
+                    </div>
+                </div>
+                
+                <!-- 詳細資訊（可展開） -->
+                <details class="text-sm">
+                    <summary class="cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
+                        📋 詳細資訊
+                    </summary>
+                    <div class="mt-2 space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs mb-1">期別</label>
+                                <input type="text" id="batch-invoice-period-${index}" 
+                                       value="${data.period || ''}"
+                                       class="w-full p-1 text-xs border rounded dark:bg-gray-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs mb-1">隨機碼</label>
+                                <input type="text" id="batch-invoice-random-${index}" 
+                                       value="${data.randomCode || ''}"
+                                       class="w-full p-1 text-xs border rounded dark:bg-gray-700">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs mb-1">賣方統編</label>
+                            <input type="text" id="batch-invoice-seller-tax-${index}" 
+                                   value="${data.sellerTaxId || ''}"
+                                   class="w-full p-1 text-xs border rounded dark:bg-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-xs mb-1">店家地址</label>
+                            <input type="text" id="batch-invoice-address-${index}" 
+                                   value="${data.storeAddress || ''}"
+                                   class="w-full p-1 text-xs border rounded dark:bg-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-xs mb-1">店家電話</label>
+                            <input type="text" id="batch-invoice-phone-${index}" 
+                                   value="${data.storePhone || ''}"
+                                   class="w-full p-1 text-xs border rounded dark:bg-gray-700">
+                        </div>
+                    </div>
+                </details>
+                
+                <!-- 送出按鈕 -->
+                <button onclick="submitSingleBatchInvoice(${index})" 
+                        class="w-full py-2 px-4 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all">
+                    📤 送出此筆
+                </button>
+            </div>
+        `;
+    } else {
+        // ⭐ 失敗：顯示錯誤訊息
+        cardContent += `
+            <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded text-center">
+                <p class="text-red-600 dark:text-red-400 mb-2">
+                    ${result.error || '無法辨識此發票'}
+                </p>
+                <p class="text-xs text-gray-500">
+                    請檢查圖片清晰度或手動輸入
+                </p>
+            </div>
+        `;
+    }
+    
+    card.innerHTML = cardContent;
     return card;
 }
 
@@ -6169,7 +6159,7 @@ function removeBatchInvoice(index) {
 }
 
 /**
- * ⭐ 修正：送出單筆批次發票（完整修正版）
+ * ⭐ 完全修正版：送出單筆批次發票
  */
 async function submitSingleBatchInvoice(index) {
     try {
@@ -6177,17 +6167,24 @@ async function submitSingleBatchInvoice(index) {
         
         const result = batchInvoiceResults[index];
         
-        if (!result || !result.success) {
-            showNotification('此發票辨識失敗，無法送出', 'error');
+        // ⭐⭐⭐ 修正：移除過於嚴格的檢查
+        if (!result) {
+            showNotification('找不到此發票資料', 'error');
             return;
         }
         
+        // ⭐ 即使 success 是 false，只要有 ocrData 就允許送出
+        console.log('📋 發票資料狀態:');
+        console.log('   success:', result.success);
+        console.log('   有 ocrData:', !!result.ocrData);
+        console.log('   有 file:', !!result.file);
+        
         // ⭐ 步驟 1：讀取編輯後的值
-        const invoiceNumber = document.getElementById(`batch-invoice-number-${index}`).value.trim();
-        const invoiceDate = document.getElementById(`batch-invoice-date-${index}`).value;
-        const invoiceTime = document.getElementById(`batch-invoice-time-${index}`).value;
-        const amount = document.getElementById(`batch-invoice-amount-${index}`).value;
-        const storeName = document.getElementById(`batch-invoice-store-${index}`).value.trim();
+        const invoiceNumber = document.getElementById(`batch-invoice-number-${index}`)?.value?.trim() || '';
+        const invoiceDate = document.getElementById(`batch-invoice-date-${index}`)?.value || '';
+        const invoiceTime = document.getElementById(`batch-invoice-time-${index}`)?.value || '';
+        const amount = document.getElementById(`batch-invoice-amount-${index}`)?.value || '';
+        const storeName = document.getElementById(`batch-invoice-store-${index}`)?.value?.trim() || '';
         
         // 詳細資訊（選填）
         const period = document.getElementById(`batch-invoice-period-${index}`)?.value || '';
@@ -6206,6 +6203,7 @@ async function submitSingleBatchInvoice(index) {
         // ⭐ 步驟 2：驗證必填欄位
         if (!invoiceDate || !amount || !storeName) {
             showNotification('請填寫必填欄位：日期、金額、店家名稱', 'error');
+            console.error('❌ 必填欄位不完整');
             return;
         }
         
@@ -6215,8 +6213,13 @@ async function submitSingleBatchInvoice(index) {
         
         if (file) {
             console.log('📷 開始轉換圖片為 Base64...');
+            console.log('   檔案名稱:', file.name);
+            console.log('   檔案大小:', file.size);
+            
             imageBase64 = await fileToBase64(file);
             console.log('✅ Base64 轉換完成，長度:', imageBase64.length);
+        } else {
+            console.warn('⚠️ 沒有圖片檔案');
         }
         
         // ⭐ 步驟 4：組裝報銷資料
@@ -6224,7 +6227,7 @@ async function submitSingleBatchInvoice(index) {
             date: invoiceDate,
             summary: `${storeName} - 發票報銷`,
             amount: parseFloat(amount),
-            note: `發票號碼: ${invoiceNumber}`,
+            note: invoiceNumber ? `發票號碼: ${invoiceNumber}` : '批次上傳發票',
             invoices: [
                 {
                     invoiceNumber: invoiceNumber,
@@ -6244,7 +6247,7 @@ async function submitSingleBatchInvoice(index) {
         };
         
         console.log('📦 組裝後的報銷資料:');
-        console.log(reimbursementData);
+        console.log(JSON.stringify(reimbursementData, null, 2));
         
         // ⭐ 步驟 5：更新按鈕狀態
         const button = document.querySelector(`#batch-invoice-card-${index} button[onclick*="submitSingleBatchInvoice"]`);
@@ -6253,10 +6256,12 @@ async function submitSingleBatchInvoice(index) {
             button.innerHTML = '<span class="animate-spin">⏳</span> 送出中...';
         }
         
-        // ⭐⭐⭐ 步驟 6：呼叫 API（修正版）
-        console.log('📡 準備呼叫 submitReimbursement API...');
+        // ⭐⭐⭐ 步驟 6：呼叫 API
+        console.log('📡 準備呼叫 API...');
+        console.log('   API URL:', API_BASE_URL);
+        console.log('   Session Token:', sessionToken ? '有' : '無');
         
-        const response = await fetch(`${API_BASE_URL}?action=submitReimbursement`, {
+        const response = await fetch(`${API_BASE_URL}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -6272,16 +6277,20 @@ async function submitSingleBatchInvoice(index) {
             })
         });
         
-        console.log('📥 收到回應，狀態:', response.status);
+        console.log('📥 收到回應');
+        console.log('   狀態碼:', response.status);
+        console.log('   狀態文字:', response.statusText);
         
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ HTTP 錯誤:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const result_api = await response.json();
         
         console.log('📤 API 回應結果:');
-        console.log(result_api);
+        console.log(JSON.stringify(result_api, null, 2));
         
         // ⭐ 步驟 7：處理結果
         if (result_api.ok) {
@@ -6302,7 +6311,11 @@ async function submitSingleBatchInvoice(index) {
         }
         
     } catch (error) {
-        console.error('❌ 送出失敗:', error);
+        console.error('❌❌❌ 送出失敗');
+        console.error('錯誤類型:', error.name);
+        console.error('錯誤訊息:', error.message);
+        console.error('錯誤堆疊:', error.stack);
+        
         showNotification('送出失敗: ' + error.message, 'error');
         
         // 恢復按鈕狀態
@@ -6313,7 +6326,6 @@ async function submitSingleBatchInvoice(index) {
         }
     }
 }
-
 /**
  * ⭐ 新增：批次送出所有發票
  */
