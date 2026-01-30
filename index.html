@@ -813,7 +813,7 @@
                 <!-- 💰 費用管理 -->
                 <section id="expense-view" class="space-y-6" style="display: none;">
                     <div class="max-w-4xl mx-auto space-y-6">
-                        
+                       
                         <!-- 🧾 發票辨識助手 -->
                         <div class="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900">
                             <div class="flex items-center gap-3 mb-4">
@@ -840,24 +840,63 @@
                                 <button onclick="document.getElementById('invoice-file-input').click()"
                                         data-i18n="BTN_UPLOAD_SCAN"
                                         class="py-3 px-4 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg font-bold hover:from-indigo-600 hover:to-indigo-700 transition-all flex items-center justify-center gap-2">
-                                    📁 上傳辨識
+                                    📁 批次上傳
                                 </button>
                             </div>
                             
-                            <!-- 隱藏的檔案輸入 -->
+                            <!-- ⭐ 修改：隱藏的檔案輸入（支援多檔案） -->
                             <input type="file" 
                                 id="invoice-camera-input" 
                                 accept="image/*" 
                                 capture="environment"
                                 onchange="handleInvoiceUpload(event, 'camera')"
                                 class="hidden">
+                                
+                            <!-- ⭐ 關鍵修改：加入 multiple 屬性，改用批次處理函數 -->
                             <input type="file" 
                                 id="invoice-file-input" 
                                 accept="image/*"
-                                onchange="handleInvoiceUpload(event, 'file')"
+                                multiple
+                                onchange="handleBatchInvoiceUpload(event)"
                                 class="hidden">
                             
-                            <!-- 圖片預覽容器 -->
+                            <!-- ⭐ 新增：批次辨識進度顯示 -->
+                            <div id="batch-ocr-progress" class="hidden mb-4">
+                                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                                            辨識進度
+                                        </span>
+                                        <span id="batch-ocr-status" class="text-sm text-blue-600 dark:text-blue-400">
+                                            0 / 0
+                                        </span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div id="batch-ocr-progress-bar" 
+                                            class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                            style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- ⭐ 新增：批次辨識結果列表 -->
+                            <div id="batch-ocr-results" class="hidden space-y-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                                        📋 辨識結果 (<span id="batch-result-count">0</span> 筆)
+                                    </h3>
+                                    <button onclick="submitAllBatchInvoices()"
+                                            class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold hover:from-green-600 hover:to-green-700 transition-all">
+                                        ✅ 全部送出
+                                    </button>
+                                </div>
+                                
+                                <div id="batch-invoice-list" class="space-y-4">
+                                    <!-- 動態生成發票卡片 -->
+                                </div>
+                            </div>
+                            
+                            <!-- 單張圖片預覽容器 -->
                             <div id="invoice-preview-container" class="hidden mb-4">
                                 <img id="invoice-preview" 
                                     src="" 
@@ -873,7 +912,7 @@
                                 </p>
                             </div>
                             
-                            <!-- 辨識成功 -->
+                            <!-- 單張辨識成功 -->
                             <div id="ocr-success" class="hidden bg-green-50 dark:bg-green-900 rounded-lg p-4 space-y-3">
                                 <p data-i18n="OCR_SUCCESS" class="font-bold text-green-800 dark:text-green-200 mb-3 text-lg">
                                     ✅ 辨識成功！
@@ -999,7 +1038,7 @@
                                         </div>
                                     </div>
                                 </div>
-                               
+                                
                                 <!-- 操作按鈕 -->
                                 <div class="grid grid-cols-2 gap-3 mt-4">
                                     <button onclick="fillReimbursementForm()"

@@ -5419,6 +5419,9 @@ function showOCRError(message) {
 /**
  * ⭐ 修改：處理發票上傳（儲存檔案）
  */
+/**
+ * ⭐ 修改：單張發票上傳（保留原功能）
+ */
 async function handleInvoiceUpload(event, source) {
     console.log('📸 handleInvoiceUpload 觸發:', source);
     
@@ -5429,14 +5432,36 @@ async function handleInvoiceUpload(event, source) {
         return;
     }
     
-    // 關鍵：儲存檔案到全域變數
+    // 隱藏批次結果（如果有）
+    const batchResults = document.getElementById('batch-ocr-results');
+    if (batchResults) batchResults.classList.add('hidden');
+    
+    // 儲存檔案
     currentInvoiceFile = file;
     
     console.log('✅ 已儲存檔案到 currentInvoiceFile:', file.name);
     
-    // 呼叫 OCR 處理
+    // 呼叫單張 OCR 處理
     await processInvoiceOCR(file);
 }
+// async function handleInvoiceUpload(event, source) {
+//     console.log('📸 handleInvoiceUpload 觸發:', source);
+    
+//     const file = event.target.files[0];
+    
+//     if (!file) {
+//         console.log('⚠️ 沒有選擇檔案');
+//         return;
+//     }
+    
+//     // 關鍵：儲存檔案到全域變數
+//     currentInvoiceFile = file;
+    
+//     console.log('✅ 已儲存檔案到 currentInvoiceFile:', file.name);
+    
+//     // 呼叫 OCR 處理
+//     await processInvoiceOCR(file);
+// }
 
 /**
  * ✅ 處理發票 OCR（CORS 修正版 - 使用 Google Script 的專屬 URL）
@@ -5794,4 +5819,507 @@ function fillReimbursementFormFromEditable() {
     }
     
     showNotification('✅ 已填入表單（可繼續手動調整）', 'success');
+}
+
+// ==================== 🧾 批次發票辨識功能 ====================
+
+let batchInvoiceResults = []; // 儲存批次辨識結果
+
+/**
+ * ⭐ 新增：處理批次發票上傳
+ */
+async function handleBatchInvoiceUpload(event) {
+    const files = Array.from(event.target.files);
+    
+    if (files.length === 0) {
+        console.log('⚠️ 沒有選擇檔案');
+        return;
+    }
+    
+    console.log(`📸 批次上傳 ${files.length} 張發票`);
+    
+    // 重置狀態
+    batchInvoiceResults = [];
+    
+    // 顯示進度條
+    const progressDiv = document.getElementById('batch-ocr-progress');
+    const statusSpan = document.getElementById('batch-ocr-status');
+    const progressBar = document.getElementById('batch-ocr-progress-bar');
+    const resultsDiv = document.getElementById('batch-ocr-results');
+    
+    if (progressDiv) progressDiv.classList.remove('hidden');
+    if (resultsDiv) resultsDiv.classList.add('hidden');
+    
+    // 逐一處理每張發票
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // 更新進度
+        if (statusSpan) statusSpan.textContent = `${i + 1} / ${files.length}`;
+        if (progressBar) {
+            const progress = ((i + 1) / files.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+        
+        try {
+            // 呼叫 OCR 處理
+            const result = await processInvoiceOCRBatch(file, i);
+            
+            if (result) {
+                batchInvoiceResults.push({
+                    id: i,
+                    fileName: file.name,
+                    file: file,
+                    ocrData: result,
+                    status: 'success'
+                });
+            } else {
+                batchInvoiceResults.push({
+                    id: i,
+                    fileName: file.name,
+                    file: file,
+                    status: 'failed',
+                    error: '辨識失敗'
+                });
+            }
+            
+        } catch (error) {
+            console.error(`處理 ${file.name} 失敗:`, error);
+            batchInvoiceResults.push({
+                id: i,
+                fileName: file.name,
+                file: file,
+                status: 'failed',
+                error: error.message
+            });
+        }
+    }
+    
+    // 隱藏進度條
+    if (progressDiv) progressDiv.classList.add('hidden');
+    
+    // 顯示結果
+    renderBatchInvoiceResults();
+    
+    showNotification(`✅ 批次辨識完成！成功 ${batchInvoiceResults.filter(r => r.status === 'success').length} 筆`, 'success');
+}
+
+/**
+ * ⭐ 新增：批次 OCR 處理（不顯示單一結果）
+ */
+async function processInvoiceOCRBatch(file, index) {
+    console.log(`🧾 處理第 ${index + 1} 張發票: ${file.name}`);
+    
+    try {
+        // 轉換為 Base64
+        const base64Data = await fileToBase64(file);
+        
+        // 取得 Session Token
+        const sessionToken = localStorage.getItem('sessionToken');
+        
+        if (!sessionToken) {
+            throw new Error('請先登入');
+        }
+        
+        // 發送 API 請求
+        const requestData = {
+            action: 'invoiceOCR',
+            imageData: base64Data,
+            fileName: file.name,
+            token: sessionToken
+        };
+        
+        const response = await fetch(API_CONFIG.apiUrl, {
+            method: 'POST',
+            body: JSON.stringify(requestData),
+            redirect: 'follow'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // 處理嵌套的資料結構
+        let ocrData = null;
+        
+        if (result.ok && result.data) {
+            if (result.data.data && typeof result.data.data === 'object') {
+                ocrData = result.data.data;
+            } else {
+                ocrData = result.data;
+            }
+            
+            return ocrData;
+        } else {
+            throw new Error(result.msg || 'OCR 處理失敗');
+        }
+        
+    } catch (error) {
+        console.error(`處理 ${file.name} 失敗:`, error);
+        return null;
+    }
+}
+
+/**
+ * ⭐ 新增：渲染批次辨識結果
+ */
+function renderBatchInvoiceResults() {
+    const resultsDiv = document.getElementById('batch-ocr-results');
+    const listDiv = document.getElementById('batch-invoice-list');
+    const countSpan = document.getElementById('batch-result-count');
+    
+    if (!resultsDiv || !listDiv) return;
+    
+    // 顯示結果區域
+    resultsDiv.classList.remove('hidden');
+    
+    // 更新計數
+    if (countSpan) {
+        countSpan.textContent = batchInvoiceResults.length;
+    }
+    
+    // 清空列表
+    listDiv.innerHTML = '';
+    
+    // 渲染每張發票
+    batchInvoiceResults.forEach((result, index) => {
+        const card = createBatchInvoiceCard(result, index);
+        listDiv.appendChild(card);
+    });
+}
+
+/**
+ * ⭐ 新增:創建發票卡片
+ */
+function createBatchInvoiceCard(result, index) {
+    const card = document.createElement('div');
+    card.className = 'bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-600 p-4';
+    card.id = `batch-invoice-${index}`;
+    
+    if (result.status === 'failed') {
+        // 失敗卡片
+        card.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <p class="font-bold text-red-600 dark:text-red-400">
+                        ❌ ${result.fileName}
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        ${result.error || '辨識失敗'}
+                    </p>
+                </div>
+                <button onclick="removeBatchInvoice(${index})"
+                        class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold">
+                    移除
+                </button>
+            </div>
+        `;
+        return card;
+    }
+    
+    // 成功卡片（可編輯）
+    const data = result.ocrData;
+    
+    card.innerHTML = `
+        <div class="space-y-3">
+            <!-- 標題列 -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-600">
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl">✅</span>
+                    <div>
+                        <p class="font-bold text-gray-800 dark:text-white">
+                            ${result.fileName}
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            點擊欄位可編輯內容
+                        </p>
+                    </div>
+                </div>
+                <button onclick="removeBatchInvoice(${index})"
+                        class="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-semibold">
+                    移除
+                </button>
+            </div>
+            
+            <!-- 可編輯欄位 -->
+            <div class="grid grid-cols-2 gap-3">
+                <!-- 發票號碼 -->
+                <div class="col-span-2">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                        發票號碼
+                    </label>
+                    <input type="text" 
+                           id="batch-invoice-number-${index}" 
+                           value="${data.invoiceNumber || ''}"
+                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold">
+                </div>
+                
+                <!-- 日期與時間 -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                        日期
+                    </label>
+                    <input type="date" 
+                           id="batch-date-${index}" 
+                           value="${data.invoiceDate || ''}"
+                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                        時間
+                    </label>
+                    <input type="time" 
+                           id="batch-time-${index}" 
+                           value="${data.invoiceTime || ''}"
+                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <!-- 金額與店家 -->
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                        金額
+                    </label>
+                    <input type="number" 
+                           id="batch-amount-${index}" 
+                           value="${data.amount || ''}"
+                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white font-bold text-green-600 dark:text-green-400">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                        店家
+                    </label>
+                    <input type="text" 
+                           id="batch-store-${index}" 
+                           value="${data.storeName || ''}"
+                           class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                </div>
+                
+                <!-- 詳細資訊（摺疊） -->
+                <div class="col-span-2">
+                    <details class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                        <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">
+                            📋 詳細資訊
+                        </summary>
+                        
+                        <div class="grid grid-cols-2 gap-3 mt-3">
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    期別
+                                </label>
+                                <input type="text" 
+                                       id="batch-period-${index}" 
+                                       value="${data.period || ''}"
+                                       class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    隨機碼
+                                </label>
+                                <input type="text" 
+                                       id="batch-random-code-${index}" 
+                                       value="${data.randomCode || ''}"
+                                       maxlength="4"
+                                       class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                            </div>
+                            
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    賣方統編
+                                </label>
+                                <input type="text" 
+                                       id="batch-seller-tax-id-${index}" 
+                                       value="${data.sellerTaxId || ''}"
+                                       maxlength="8"
+                                       class="w-full p-2 text-xs border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+            
+            <!-- 單筆送出按鈕 -->
+            <button onclick="submitSingleBatchInvoice(${index})"
+                    id="batch-submit-${index}"
+                    class="w-full py-2 px-4 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg font-bold hover:from-indigo-600 hover:to-indigo-700 transition-all">
+                📤 送出此筆
+            </button>
+        </div>
+    `;
+    
+    return card;
+}
+
+/**
+ * ⭐ 新增：移除指定發票
+ */
+function removeBatchInvoice(index) {
+    if (!confirm('確定要移除這筆發票嗎？')) return;
+    
+    // 從陣列中移除
+    batchInvoiceResults.splice(index, 1);
+    
+    // 重新渲染
+    renderBatchInvoiceResults();
+    
+    showNotification('已移除', 'success');
+}
+
+/**
+ * ⭐ 新增：送出單筆發票
+ */
+async function submitSingleBatchInvoice(index) {
+    const result = batchInvoiceResults[index];
+    
+    if (!result || result.status === 'failed') {
+        showNotification('無效的發票資料', 'error');
+        return;
+    }
+    
+    const submitBtn = document.getElementById(`batch-submit-${index}`);
+    
+    try {
+        // 取得編輯後的資料
+        const invoiceData = {
+            invoiceNumber: document.getElementById(`batch-invoice-number-${index}`).value,
+            date: document.getElementById(`batch-date-${index}`).value,
+            time: document.getElementById(`batch-time-${index}`).value,
+            amount: document.getElementById(`batch-amount-${index}`).value,
+            storeName: document.getElementById(`batch-store-${index}`).value,
+            period: document.getElementById(`batch-period-${index}`)?.value || '',
+            randomCode: document.getElementById(`batch-random-code-${index}`)?.value || '',
+            sellerTaxId: document.getElementById(`batch-seller-tax-id-${index}`)?.value || ''
+        };
+        
+        // 驗證必填欄位
+        if (!invoiceData.date || !invoiceData.amount || !invoiceData.storeName) {
+            showNotification('❌ 請填寫必填欄位（日期、金額、店家）', 'error');
+            return;
+        }
+        
+        // 按鈕進入處理中
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '🔄 送出中...';
+        }
+        
+        // 準備發票資料
+        const invoices = [{
+            invoiceNumber: invoiceData.invoiceNumber,
+            date: invoiceData.date,
+            time: invoiceData.time,
+            amount: invoiceData.amount,
+            storeName: invoiceData.storeName,
+            sellerTaxId: invoiceData.sellerTaxId,
+            randomCode: invoiceData.randomCode,
+            period: invoiceData.period,
+            imageData: await fileToBase64(result.file),
+            fileName: result.fileName
+        }];
+        
+        // 發送報銷申請
+        const response = await fetch(`${API_CONFIG.apiUrl}?action=submitReimbursement`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                token: getStoredToken(),
+                date: invoiceData.date,
+                summary: `${invoiceData.storeName} - 消費`,
+                amount: invoiceData.amount,
+                note: '',
+                invoices: invoices
+            })
+        });
+        
+        const apiResult = await response.json();
+        
+        if (apiResult.ok) {
+            showNotification(`✅ ${result.fileName} 已送出`, 'success');
+            
+            // 標記為已送出
+            if (submitBtn) {
+                submitBtn.innerHTML = '✅ 已送出';
+                submitBtn.classList.remove('from-indigo-500', 'to-indigo-600');
+                submitBtn.classList.add('from-green-500', 'to-green-600', 'cursor-not-allowed');
+                submitBtn.disabled = true;
+            }
+            
+            // 重新載入報銷記錄
+            loadReimbursementRecords();
+            
+        } else {
+            showNotification('❌ 送出失敗：' + apiResult.msg, 'error');
+            
+            // 恢復按鈕
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '📤 送出此筆';
+            }
+        }
+        
+    } catch (error) {
+        console.error('送出失敗:', error);
+        showNotification('❌ 系統錯誤：' + error.message, 'error');
+        
+        // 恢復按鈕
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '📤 送出此筆';
+        }
+    }
+}
+
+/**
+ * ⭐ 新增：批次送出所有發票
+ */
+async function submitAllBatchInvoices() {
+    const successInvoices = batchInvoiceResults.filter(r => r.status === 'success');
+    
+    if (successInvoices.length === 0) {
+        showNotification('沒有可送出的發票', 'warning');
+        return;
+    }
+    
+    if (!confirm(`確定要送出全部 ${successInvoices.length} 筆發票嗎？`)) {
+        return;
+    }
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (let i = 0; i < batchInvoiceResults.length; i++) {
+        const result = batchInvoiceResults[i];
+        
+        if (result.status !== 'success') continue;
+        
+        try {
+            await submitSingleBatchInvoice(i);
+            successCount++;
+            
+            // 延遲 500ms 避免 API 過載
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+        } catch (error) {
+            console.error(`送出第 ${i + 1} 筆失敗:`, error);
+            failCount++;
+        }
+    }
+    
+    showNotification(
+        `✅ 批次送出完成！成功 ${successCount} 筆，失敗 ${failCount} 筆`,
+        failCount === 0 ? 'success' : 'warning'
+    );
+}
+
+/**
+ * 輔助函數：取得 Token
+ */
+function getStoredToken() {
+    return localStorage.getItem('sessionToken') || '';
 }
