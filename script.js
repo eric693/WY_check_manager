@@ -6170,107 +6170,147 @@ function removeBatchInvoice(index) {
 }
 
 /**
- * ⭐ 新增：送出單筆發票
+ * ⭐ 修正：送出單筆批次發票（完整修正版）
  */
 async function submitSingleBatchInvoice(index) {
-    const result = batchInvoiceResults[index];
-    
-    if (!result || result.status === 'failed') {
-        showNotification('無效的發票資料', 'error');
-        return;
-    }
-    
-    const submitBtn = document.getElementById(`batch-submit-${index}`);
-    
     try {
-        // 取得編輯後的資料
-        const invoiceData = {
-            invoiceNumber: document.getElementById(`batch-invoice-number-${index}`).value,
-            date: document.getElementById(`batch-date-${index}`).value,
-            time: document.getElementById(`batch-time-${index}`).value,
-            amount: document.getElementById(`batch-amount-${index}`).value,
-            storeName: document.getElementById(`batch-store-${index}`).value,
-            period: document.getElementById(`batch-period-${index}`)?.value || '',
-            randomCode: document.getElementById(`batch-random-code-${index}`)?.value || '',
-            sellerTaxId: document.getElementById(`batch-seller-tax-id-${index}`)?.value || ''
-        };
+        console.log('📤 開始送出第 ' + index + ' 筆發票');
         
-        // 驗證必填欄位
-        if (!invoiceData.date || !invoiceData.amount || !invoiceData.storeName) {
-            showNotification('❌ 請填寫必填欄位（日期、金額、店家）', 'error');
+        const result = batchInvoiceResults[index];
+        
+        if (!result || !result.success) {
+            showNotification('此發票辨識失敗，無法送出', 'error');
             return;
         }
         
-        // 按鈕進入處理中
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '🔄 送出中...';
+        // ⭐ 步驟 1：讀取編輯後的值
+        const invoiceNumber = document.getElementById(`batch-invoice-number-${index}`).value.trim();
+        const invoiceDate = document.getElementById(`batch-invoice-date-${index}`).value;
+        const invoiceTime = document.getElementById(`batch-invoice-time-${index}`).value;
+        const amount = document.getElementById(`batch-invoice-amount-${index}`).value;
+        const storeName = document.getElementById(`batch-invoice-store-${index}`).value.trim();
+        
+        // 詳細資訊（選填）
+        const period = document.getElementById(`batch-invoice-period-${index}`)?.value || '';
+        const randomCode = document.getElementById(`batch-invoice-random-${index}`)?.value || '';
+        const sellerTaxId = document.getElementById(`batch-invoice-seller-tax-${index}`)?.value || '';
+        const storeAddress = document.getElementById(`batch-invoice-address-${index}`)?.value || '';
+        const storePhone = document.getElementById(`batch-invoice-phone-${index}`)?.value || '';
+        
+        console.log('📋 讀取到的資料:');
+        console.log('   發票號碼:', invoiceNumber);
+        console.log('   日期:', invoiceDate);
+        console.log('   時間:', invoiceTime);
+        console.log('   金額:', amount);
+        console.log('   店家:', storeName);
+        
+        // ⭐ 步驟 2：驗證必填欄位
+        if (!invoiceDate || !amount || !storeName) {
+            showNotification('請填寫必填欄位：日期、金額、店家名稱', 'error');
+            return;
         }
         
-        // 準備發票資料
-        const invoices = [{
-            invoiceNumber: invoiceData.invoiceNumber,
-            date: invoiceData.date,
-            time: invoiceData.time,
-            amount: invoiceData.amount,
-            storeName: invoiceData.storeName,
-            sellerTaxId: invoiceData.sellerTaxId,
-            randomCode: invoiceData.randomCode,
-            period: invoiceData.period,
-            imageData: await fileToBase64(result.file),
-            fileName: result.fileName
-        }];
+        // ⭐ 步驟 3：轉換圖片為 Base64
+        const file = result.file;
+        let imageBase64 = '';
         
-        // 發送報銷申請
-        const response = await fetch(`${API_CONFIG.apiUrl}?action=submitReimbursement`, {
+        if (file) {
+            console.log('📷 開始轉換圖片為 Base64...');
+            imageBase64 = await fileToBase64(file);
+            console.log('✅ Base64 轉換完成，長度:', imageBase64.length);
+        }
+        
+        // ⭐ 步驟 4：組裝報銷資料
+        const reimbursementData = {
+            date: invoiceDate,
+            summary: `${storeName} - 發票報銷`,
+            amount: parseFloat(amount),
+            note: `發票號碼: ${invoiceNumber}`,
+            invoices: [
+                {
+                    invoiceNumber: invoiceNumber,
+                    invoiceDate: invoiceDate,
+                    invoiceTime: invoiceTime,
+                    amount: parseFloat(amount),
+                    storeName: storeName,
+                    period: period,
+                    randomCode: randomCode,
+                    sellerTaxId: sellerTaxId,
+                    storeAddress: storeAddress,
+                    storePhone: storePhone,
+                    imageData: imageBase64,
+                    fileName: file ? file.name : 'invoice.jpg'
+                }
+            ]
+        };
+        
+        console.log('📦 組裝後的報銷資料:');
+        console.log(reimbursementData);
+        
+        // ⭐ 步驟 5：更新按鈕狀態
+        const button = document.querySelector(`#batch-invoice-card-${index} button[onclick*="submitSingleBatchInvoice"]`);
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<span class="animate-spin">⏳</span> 送出中...';
+        }
+        
+        // ⭐⭐⭐ 步驟 6：呼叫 API（修正版）
+        console.log('📡 準備呼叫 submitReimbursement API...');
+        
+        const response = await fetch(`${API_BASE_URL}?action=submitReimbursement`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                token: getStoredToken(),
-                date: invoiceData.date,
-                summary: `${invoiceData.storeName} - 消費`,
-                amount: invoiceData.amount,
-                note: '',
-                invoices: invoices
+                action: 'submitReimbursement',
+                token: sessionToken,
+                date: reimbursementData.date,
+                summary: reimbursementData.summary,
+                amount: reimbursementData.amount,
+                note: reimbursementData.note,
+                invoices: reimbursementData.invoices
             })
         });
         
-        const apiResult = await response.json();
+        console.log('📥 收到回應，狀態:', response.status);
         
-        if (apiResult.ok) {
-            showNotification(`✅ ${result.fileName} 已送出`, 'success');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result_api = await response.json();
+        
+        console.log('📤 API 回應結果:');
+        console.log(result_api);
+        
+        // ⭐ 步驟 7：處理結果
+        if (result_api.ok) {
+            console.log('✅ 送出成功');
+            showNotification('報銷申請已送出！', 'success');
             
-            // 標記為已送出
-            if (submitBtn) {
-                submitBtn.innerHTML = '✅ 已送出';
-                submitBtn.classList.remove('from-indigo-500', 'to-indigo-600');
-                submitBtn.classList.add('from-green-500', 'to-green-600', 'cursor-not-allowed');
-                submitBtn.disabled = true;
+            // 更新按鈕狀態為已完成
+            if (button) {
+                button.innerHTML = '✅ 已送出';
+                button.classList.remove('bg-green-500', 'hover:bg-green-600');
+                button.classList.add('bg-gray-400', 'cursor-not-allowed');
             }
             
-            // 重新載入報銷記錄
-            loadReimbursementRecords();
-            
+            // 標記此發票為已送出
+            batchInvoiceResults[index].submitted = true;
         } else {
-            showNotification('❌ 送出失敗：' + apiResult.msg, 'error');
-            
-            // 恢復按鈕
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '📤 送出此筆';
-            }
+            throw new Error(result_api.msg || '送出失敗');
         }
         
     } catch (error) {
-        console.error('送出失敗:', error);
-        showNotification('❌ 系統錯誤：' + error.message, 'error');
+        console.error('❌ 送出失敗:', error);
+        showNotification('送出失敗: ' + error.message, 'error');
         
-        // 恢復按鈕
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '📤 送出此筆';
+        // 恢復按鈕狀態
+        const button = document.querySelector(`#batch-invoice-card-${index} button[onclick*="submitSingleBatchInvoice"]`);
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '📤 送出此筆';
         }
     }
 }
