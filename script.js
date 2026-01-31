@@ -6962,3 +6962,348 @@ function resetAttachmentOCR() {
   
   console.log('✅ 附圖 OCR 狀態已重置');
 }
+
+
+// ==================== 附圖管理系統 - 前端函數 ====================
+
+/**
+ * 💾 儲存附圖資料到系統
+ */
+async function saveAttachmentData() {
+    try {
+      console.log('💾 saveAttachmentData 開始');
+      
+      // 步驟 1：收集表單資料
+      const formData = {
+        documentType: document.getElementById('attachment-document-type')?.value || '',
+        date: document.getElementById('attachment-date')?.value || '',
+        amount: document.getElementById('attachment-amount')?.value || '',
+        companyName: document.getElementById('attachment-company')?.value || '',
+        contactPerson: document.getElementById('attachment-contact')?.value || '',
+        phone: document.getElementById('attachment-phone')?.value || '',
+        address: document.getElementById('attachment-address')?.value || '',
+        note: document.getElementById('attachment-note')?.value || '',
+        fileName: currentAttachmentFileName || ''
+      };
+      
+      console.log('📋 表單資料:', formData);
+      
+      // 步驟 2：驗證必填欄位
+      if (!formData.documentType) {
+        showNotification('請選擇文件類型', 'error');
+        return;
+      }
+      
+      if (!formData.fileName) {
+        showNotification('請先上傳附圖', 'error');
+        return;
+      }
+      
+      // 步驟 3：顯示載入中
+      const saveBtn = event?.target;
+      const originalText = saveBtn?.textContent || '儲存';
+      
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 儲存中...';
+      }
+      
+      console.log('📤 發送儲存請求...');
+      
+      // 步驟 4：呼叫後端 API
+      const result = await callAPI('saveAttachmentRecord', formData);
+      
+      console.log('📥 儲存結果:', result);
+      
+      // 步驟 5：處理結果
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+      
+      if (!result.ok) {
+        throw new Error(result.msg || '儲存失敗');
+      }
+      
+      // 步驟 6：成功處理
+      showNotification('✅ 附圖資料儲存成功！', 'success');
+      
+      console.log('✅ 儲存成功');
+      console.log('   附圖ID:', result.attachmentId);
+      
+      // 步驟 7：清空表單（可選）
+      clearAttachmentForm();
+      
+      // 步驟 8：重新載入附圖列表（如果有的話）
+      if (typeof loadAttachmentRecords === 'function') {
+        await loadAttachmentRecords();
+      }
+      
+      // 步驟 9：關閉對話框（如果是在對話框中）
+      const modal = document.getElementById('attachment-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+      
+      console.log('═══════════════════════════════════════');
+      
+    } catch (error) {
+      console.error('❌ saveAttachmentData 錯誤:', error);
+      showNotification('儲存失敗: ' + error.message, 'error');
+      
+      // 恢復按鈕狀態
+      const saveBtn = event?.target;
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '儲存';
+      }
+    }
+  }
+  
+  /**
+   * 🧹 清空附圖表單
+   */
+  function clearAttachmentForm() {
+    console.log('🧹 清空附圖表單');
+    
+    // 清空所有輸入欄位
+    const fields = [
+      'attachment-document-type',
+      'attachment-date',
+      'attachment-amount',
+      'attachment-company',
+      'attachment-contact',
+      'attachment-phone',
+      'attachment-address',
+      'attachment-note'
+    ];
+    
+    fields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.value = '';
+      }
+    });
+    
+    // 清空預覽圖片
+    const preview = document.getElementById('attachment-preview');
+    if (preview) {
+      preview.src = '';
+      preview.style.display = 'none';
+    }
+    
+    // 重置全域變數
+    currentAttachmentFile = null;
+    currentAttachmentFileName = null;
+    
+    console.log('✅ 表單已清空');
+  }
+  
+  /**
+   * 📋 載入附圖記錄列表
+   */
+  async function loadAttachmentRecords() {
+    try {
+      console.log('📋 載入附圖記錄...');
+      
+      const result = await callAPI('getAttachmentRecords', {
+        limit: 50  // 最多載入 50 筆
+      });
+      
+      if (!result.ok || !result.data) {
+        console.log('⚠️ 無附圖記錄或載入失敗');
+        return;
+      }
+      
+      console.log('✅ 載入成功，共 ' + result.total + ' 筆記錄');
+      
+      // 顯示記錄（需要有對應的 HTML 容器）
+      displayAttachmentRecords(result.data);
+      
+    } catch (error) {
+      console.error('❌ 載入附圖記錄失敗:', error);
+    }
+  }
+  
+  /**
+   * 📊 顯示附圖記錄
+   */
+  function displayAttachmentRecords(records) {
+    const container = document.getElementById('attachment-records-list');
+    
+    if (!container) {
+      console.log('⚠️ 找不到附圖記錄容器');
+      return;
+    }
+    
+    if (!records || records.length === 0) {
+      container.innerHTML = '<p class="text-muted">暫無附圖記錄</p>';
+      return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-hover">';
+    html += '<thead><tr>';
+    html += '<th>文件類型</th>';
+    html += '<th>日期</th>';
+    html += '<th>金額</th>';
+    html += '<th>公司名稱</th>';
+    html += '<th>上傳時間</th>';
+    html += '<th>操作</th>';
+    html += '</tr></thead><tbody>';
+    
+    records.forEach(record => {
+      html += '<tr>';
+      html += `<td>${record.documentType || '-'}</td>`;
+      html += `<td>${record.date || '-'}</td>`;
+      html += `<td>${record.amount ? 'NT$ ' + record.amount : '-'}</td>`;
+      html += `<td>${record.companyName || '-'}</td>`;
+      html += `<td>${formatDateTime(record.uploadTime)}</td>`;
+      html += `<td>`;
+      html += `<button class="btn btn-sm btn-primary" onclick="viewAttachment('${record.attachmentId}')">`;
+      html += `<i class="fas fa-eye"></i> 查看</button>`;
+      html += `</td>`;
+      html += '</tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+    
+    console.log('✅ 已顯示 ' + records.length + ' 筆記錄');
+  }
+  
+  /**
+   * 👁️ 查看附圖詳情
+   */
+  async function viewAttachment(attachmentId) {
+    try {
+      console.log('👁️ 查看附圖:', attachmentId);
+      
+      const result = await callAPI('getAttachmentDetail', { attachmentId });
+      
+      if (!result.ok || !result.data) {
+        showNotification('無法載入附圖詳情', 'error');
+        return;
+      }
+      
+      // 顯示詳情對話框
+      showAttachmentDetail(result.data);
+      
+    } catch (error) {
+      console.error('❌ 查看附圖失敗:', error);
+      showNotification('查看失敗: ' + error.message, 'error');
+    }
+  }
+  
+  /**
+   * 📊 顯示附圖詳情
+   */
+  function showAttachmentDetail(attachment) {
+    // 建立詳情 HTML
+    const html = `
+      <div class="attachment-detail">
+        <h5>附圖詳情</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>文件類型：</strong>${attachment.documentType || '-'}</p>
+            <p><strong>日期：</strong>${attachment.date || '-'}</p>
+            <p><strong>金額：</strong>${attachment.amount ? 'NT$ ' + attachment.amount : '-'}</p>
+            <p><strong>公司名稱：</strong>${attachment.companyName || '-'}</p>
+          </div>
+          <div class="col-md-6">
+            <p><strong>聯絡人：</strong>${attachment.contactPerson || '-'}</p>
+            <p><strong>電話：</strong>${attachment.phone || '-'}</p>
+            <p><strong>地址：</strong>${attachment.address || '-'}</p>
+            <p><strong>上傳時間：</strong>${formatDateTime(attachment.uploadTime)}</p>
+          </div>
+        </div>
+        ${attachment.note ? `<p><strong>備註：</strong>${attachment.note}</p>` : ''}
+      </div>
+    `;
+    
+    // 使用 SweetAlert 或自訂對話框顯示
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        title: '附圖詳情',
+        html: html,
+        width: 600,
+        confirmButtonText: '關閉'
+      });
+    } else {
+      // 簡單的 alert
+      alert('附圖詳情：\n\n' + 
+        '文件類型：' + (attachment.documentType || '-') + '\n' +
+        '日期：' + (attachment.date || '-') + '\n' +
+        '金額：' + (attachment.amount ? 'NT$ ' + attachment.amount : '-') + '\n' +
+        '公司名稱：' + (attachment.companyName || '-')
+      );
+    }
+  }
+  
+  /**
+   * 🕒 格式化日期時間
+   */
+  function formatDateTime(isoString) {
+    if (!isoString) return '-';
+    
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString('zh-TW', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return isoString;
+    }
+  }
+  
+  // ==================== 全域變數 ====================
+  
+  let currentAttachmentFileName = null;
+  
+  
+  // ==================== 簡化版（如果只需要基本功能）====================
+  
+  /**
+   * 💾 儲存附圖資料（簡化版）
+   * 如果您的系統不需要儲存到獨立的附圖記錄，只需要 OCR 辨識結果，可以使用這個版本
+   */
+  async function saveAttachmentDataSimple() {
+    try {
+      console.log('💾 儲存附圖資料（簡化版）');
+      
+      // 收集表單資料
+      const formData = {
+        documentType: document.getElementById('attachment-document-type')?.value || '',
+        date: document.getElementById('attachment-date')?.value || '',
+        amount: document.getElementById('attachment-amount')?.value || '',
+        companyName: document.getElementById('attachment-company')?.value || '',
+        contactPerson: document.getElementById('attachment-contact')?.value || '',
+        phone: document.getElementById('attachment-phone')?.value || '',
+        address: document.getElementById('attachment-address')?.value || '',
+        note: document.getElementById('attachment-note')?.value || ''
+      };
+      
+      console.log('📋 附圖資料:', formData);
+      
+      // 顯示成功訊息
+      showNotification('✅ 附圖資料已記錄！', 'success');
+      
+      // 清空表單
+      clearAttachmentForm();
+      
+      // 關閉對話框
+      const modal = document.getElementById('attachment-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+      
+      console.log('✅ 完成');
+      
+    } catch (error) {
+      console.error('❌ 錯誤:', error);
+      showNotification('儲存失敗: ' + error.message, 'error');
+    }
+  }
