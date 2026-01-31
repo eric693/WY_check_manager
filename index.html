@@ -1070,6 +1070,186 @@
                             </div>
                         </div>
                         
+                        <!-- 🖼️ 附圖辨識助手 -->
+                        <div class="card p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900 dark:to-pink-900">
+                            <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-2xl">
+                                🖼️
+                            </div>
+                            <div>
+                                <h2 data-i18n="ATTACHMENT_OCR_TITLE" class="text-xl font-bold text-gray-800 dark:text-white">
+                                附圖辨識助手
+                                </h2>
+                                <p class="text-sm text-gray-600 dark:text-gray-300">
+                                辨識收據、名片、合約等文件
+                                </p>
+                            </div>
+                            </div>
+                            
+                            <!-- 上傳按鈕 -->
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                            <button onclick="document.getElementById('attachment-camera-input').click()"
+                                    data-i18n="BTN_CAMERA_SCAN"
+                                    class="py-3 px-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-bold hover:from-purple-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2">
+                                📷 拍照辨識
+                            </button>
+                            <button onclick="document.getElementById('attachment-file-input').click()"
+                                    data-i18n="BTN_UPLOAD_SCAN"
+                                    class="py-3 px-4 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg font-bold hover:from-pink-600 hover:to-pink-700 transition-all flex items-center justify-center gap-2">
+                                📁 批次上傳
+                            </button>
+                            </div>
+                            
+                            <!-- 隱藏的檔案輸入 -->
+                            <input type="file" 
+                                id="attachment-camera-input" 
+                                accept="image/*" 
+                                capture="environment"
+                                onchange="handleAttachmentUpload(event, 'camera')"
+                                class="hidden">
+                                
+                            <input type="file" 
+                                id="attachment-file-input" 
+                                accept="image/*"
+                                multiple
+                                onchange="handleBatchAttachmentUpload(event)"
+                                class="hidden">
+                            
+                            <!-- 批次辨識進度顯示 -->
+                            <div id="batch-attachment-progress" class="hidden mb-4">
+                            <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-semibold text-purple-800 dark:text-purple-200">
+                                    辨識進度
+                                </span>
+                                <span id="batch-attachment-status" class="text-sm text-purple-600 dark:text-purple-400">
+                                    0 / 0
+                                </span>
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div id="batch-attachment-progress-bar" 
+                                    class="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                                    style="width: 0%"></div>
+                                </div>
+                            </div>
+                            </div>
+                            
+                            <!-- 批次辨識結果列表 -->
+                            <div id="batch-attachment-results" class="hidden space-y-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                                📋 辨識結果 (<span id="batch-attachment-count">0</span> 筆)
+                                </h3>
+                                <button onclick="submitAllBatchAttachments()"
+                                        class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold hover:from-green-600 hover:to-green-700 transition-all">
+                                ✅ 全部送出
+                                </button>
+                            </div>
+                            
+                            <div id="batch-attachment-list" class="space-y-4">
+                                <!-- 動態生成附圖卡片 -->
+                            </div>
+                            </div>
+                            
+                            <!-- 單張圖片預覽容器 -->
+                            <div id="attachment-preview-container" class="hidden mb-4">
+                            <img id="attachment-preview" 
+                                src="" 
+                                alt="附圖預覽" 
+                                class="w-full max-h-64 object-contain rounded-lg border-2 border-gray-300 dark:border-gray-600">
+                            </div>
+                            
+                            <!-- 載入中 -->
+                            <div id="attachment-ocr-loading" class="hidden text-center py-6">
+                            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+                            <p data-i18n="OCR_PROCESSING" class="mt-4 text-gray-600 dark:text-gray-300">
+                                AI 正在辨識內容...
+                            </p>
+                            </div>
+                            
+                            <!-- 單張辨識成功 -->
+                            <div id="attachment-ocr-success" class="hidden bg-green-50 dark:bg-green-900 rounded-lg p-4 space-y-3">
+                            <p data-i18n="OCR_SUCCESS" class="font-bold text-green-800 dark:text-green-200 mb-3 text-lg">
+                                ✅ 辨識成功！
+                            </p>
+                            
+                            <!-- 主要資訊 -->
+                            <div class="grid grid-cols-1 gap-3 bg-white dark:bg-gray-800 p-4 rounded-lg">
+                                <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                    文件類型
+                                </label>
+                                <input type="text" 
+                                        id="attachment-document-type" 
+                                        class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                    日期
+                                    </label>
+                                    <input type="date" 
+                                        id="attachment-date" 
+                                        class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                    金額
+                                    </label>
+                                    <input type="number" 
+                                        id="attachment-amount" 
+                                        class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                                </div>
+                                </div>
+                                
+                                <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                    公司名稱
+                                </label>
+                                <input type="text" 
+                                        id="attachment-company" 
+                                        class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+                                </div>
+                                
+                                <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                    備註
+                                </label>
+                                <textarea id="attachment-note" 
+                                            rows="2"
+                                            class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"></textarea>
+                                </div>
+                            </div>
+                            
+                            <!-- 操作按鈕 -->
+                            <div class="grid grid-cols-2 gap-3 mt-4">
+                                <button onclick="saveAttachmentData()"
+                                        class="py-2 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold hover:from-green-600 hover:to-green-700 transition-all">
+                                💾 儲存資料
+                                </button>
+                                <button onclick="resetAttachmentOCR()"
+                                        class="py-2 px-4 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg font-bold hover:from-gray-600 hover:to-gray-700 transition-all">
+                                🔄 重新辨識
+                                </button>
+                            </div>
+                            </div>
+                            
+                            <!-- 辨識失敗 -->
+                            <div id="attachment-ocr-error" class="hidden bg-red-50 dark:bg-red-900 rounded-lg p-4">
+                            <p class="font-bold text-red-800 dark:text-red-200 mb-2">
+                                ❌ 辨識失敗
+                            </p>
+                            <p id="attachment-ocr-error-message" class="text-red-600 dark:text-red-300 text-sm mb-3">
+                                請確認圖片清晰度後重試
+                            </p>
+                            <button onclick="resetAttachmentOCR()"
+                                    class="w-full py-2 px-4 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition-all">
+                                🔄 重新辨識
+                            </button>
+                            </div>
+                        </div>
                         <!-- 📋 預支申請表單 -->
                         <div class="card p-6">
                             <h2 data-i18n="EXPENSE_ADVANCE_TITLE" 

@@ -6362,3 +6362,603 @@ async function submitAllBatchInvoices() {
 function getStoredToken() {
     return localStorage.getItem('sessionToken') || '';
 }
+
+
+// ==================== 🖼️ 附圖辨識功能 ====================
+
+let currentAttachmentData = null;
+let currentAttachmentFile = null;
+let batchAttachmentResults = [];
+
+/**
+ * ⭐ 處理單張附圖上傳
+ */
+async function handleAttachmentUpload(event, source) {
+  console.log('🖼️ handleAttachmentUpload 觸發:', source);
+  
+  const file = event.target.files[0];
+  
+  if (!file) {
+    console.log('⚠️ 沒有選擇檔案');
+    return;
+  }
+  
+  // 隱藏批次結果（如果有）
+  const batchResults = document.getElementById('batch-attachment-results');
+  if (batchResults) batchResults.classList.add('hidden');
+  
+  // 儲存檔案
+  currentAttachmentFile = file;
+  
+  console.log('✅ 已儲存檔案:', file.name);
+  
+  // 呼叫單張 OCR 處理
+  await processAttachmentOCR(file);
+}
+
+/**
+ * ⭐ 處理批次附圖上傳
+ */
+async function handleBatchAttachmentUpload(event) {
+  const files = Array.from(event.target.files);
+  
+  if (files.length === 0) {
+    console.log('⚠️ 沒有選擇檔案');
+    return;
+  }
+  
+  console.log(`🖼️ 批次上傳 ${files.length} 張附圖`);
+  
+  // 重置狀態
+  batchAttachmentResults = [];
+  
+  // 顯示進度條
+  const progressDiv = document.getElementById('batch-attachment-progress');
+  const statusSpan = document.getElementById('batch-attachment-status');
+  const progressBar = document.getElementById('batch-attachment-progress-bar');
+  const resultsDiv = document.getElementById('batch-attachment-results');
+  
+  if (progressDiv) progressDiv.classList.remove('hidden');
+  if (resultsDiv) resultsDiv.classList.add('hidden');
+  
+  // 逐一處理每張附圖
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    
+    // 更新進度
+    if (statusSpan) statusSpan.textContent = `${i + 1} / ${files.length}`;
+    if (progressBar) {
+      const progress = ((i + 1) / files.length) * 100;
+      progressBar.style.width = `${progress}%`;
+    }
+    
+    try {
+      const result = await processAttachmentOCRBatch(file, i);
+      
+      if (result) {
+        batchAttachmentResults.push({
+          id: i,
+          fileName: file.name,
+          file: file,
+          ocrData: result,
+          status: 'success'
+        });
+      } else {
+        batchAttachmentResults.push({
+          id: i,
+          fileName: file.name,
+          file: file,
+          status: 'failed',
+          error: '辨識失敗'
+        });
+      }
+      
+    } catch (error) {
+      console.error(`處理 ${file.name} 失敗:`, error);
+      batchAttachmentResults.push({
+        id: i,
+        fileName: file.name,
+        file: file,
+        status: 'failed',
+        error: error.message
+      });
+    }
+  }
+  
+  // 隱藏進度條
+  if (progressDiv) progressDiv.classList.add('hidden');
+  
+  // 顯示結果
+  renderBatchAttachmentResults();
+  
+  const successCount = batchAttachmentResults.filter(r => r.status === 'success').length;
+  showNotification(`✅ 批次辨識完成！成功 ${successCount} 筆`, 'success');
+}
+
+/**
+ * ⭐ 單張附圖 OCR 處理
+ */
+async function processAttachmentOCR(file) {
+  console.log('═══════════════════════════════════════');
+  console.log('🖼️ 開始處理附圖 OCR');
+  console.log('   檔案:', file.name);
+  console.log('   大小:', (file.size / 1024).toFixed(2), 'KB');
+  console.log('═══════════════════════════════════════');
+  
+  // 驗證檔案類型
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  if (!validTypes.includes(file.type)) {
+    showNotification('請上傳有效的圖片檔案', 'error');
+    return;
+  }
+  
+  // 檢查檔案大小
+  if (file.size > 5 * 1024 * 1024) {
+    showNotification('檔案大小不能超過 5MB', 'error');
+    return;
+  }
+  
+  const loadingEl = document.getElementById('attachment-ocr-loading');
+  const successEl = document.getElementById('attachment-ocr-success');
+  const errorEl = document.getElementById('attachment-ocr-error');
+  
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (successEl) successEl.style.display = 'none';
+  if (errorEl) errorEl.style.display = 'none';
+  
+  // 顯示圖片預覽
+  const previewContainer = document.getElementById('attachment-preview-container');
+  const previewImg = document.getElementById('attachment-preview');
+  if (previewContainer && previewImg) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewImg.src = e.target.result;
+      previewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  try {
+    // 轉換為 Base64
+    const base64Data = await fileToBase64(file);
+    
+    const sessionToken = localStorage.getItem('sessionToken');
+    
+    if (!sessionToken) {
+      throw new Error('請先登入');
+    }
+    
+    // 發送 API 請求
+    const requestData = {
+      action: 'attachmentOCR',
+      imageData: base64Data,
+      fileName: file.name,
+      token: sessionToken
+    };
+    
+    const response = await fetch(API_CONFIG.apiUrl, {
+      method: 'POST',
+      body: JSON.stringify(requestData),
+      redirect: 'follow'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    let ocrData = null;
+    
+    if (result.ok && result.data) {
+      if (result.data.data && typeof result.data.data === 'object') {
+        ocrData = result.data.data;
+      } else {
+        ocrData = result.data;
+      }
+      
+      console.log('✅ OCR 辨識成功！');
+      
+      currentAttachmentData = ocrData;
+      
+      if (loadingEl) loadingEl.style.display = 'none';
+      
+      if (successEl) {
+        successEl.style.display = 'block';
+        
+        // 填入欄位
+        const fields = {
+          'attachment-document-type': ocrData.documentType || '',
+          'attachment-date': ocrData.date || '',
+          'attachment-amount': ocrData.amount || '',
+          'attachment-company': ocrData.companyName || '',
+          'attachment-contact': ocrData.contactPerson || '',
+          'attachment-phone': ocrData.phone || '',
+          'attachment-address': ocrData.address || '',
+          'attachment-note': ocrData.note || ''
+        };
+        
+        for (const [id, value] of Object.entries(fields)) {
+          const el = document.getElementById(id);
+          if (el) {
+            el.value = value;
+            console.log(`  ✓ 已填入 ${id}: ${value}`);
+          }
+        }
+      }
+      
+      showNotification('✅ 附圖辨識成功！', 'success');
+      
+    } else {
+      throw new Error(result.msg || 'OCR 處理失敗');
+    }
+    
+  } catch (error) {
+    console.error('❌ 錯誤:', error);
+    showNotification(error.message || '處理圖片時發生錯誤', 'error');
+    if (loadingEl) loadingEl.style.display = 'none';
+  }
+}
+
+/**
+ * ⭐ 批次 OCR 處理（不顯示單一結果）
+ */
+async function processAttachmentOCRBatch(file, index) {
+  console.log(`🖼️ 處理第 ${index + 1} 張附圖: ${file.name}`);
+  
+  try {
+    const base64Data = await fileToBase64(file);
+    const sessionToken = localStorage.getItem('sessionToken');
+    
+    if (!sessionToken) {
+      throw new Error('請先登入');
+    }
+    
+    const requestData = {
+      action: 'attachmentOCR',
+      imageData: base64Data,
+      fileName: file.name,
+      token: sessionToken
+    };
+    
+    const response = await fetch(API_CONFIG.apiUrl, {
+      method: 'POST',
+      body: JSON.stringify(requestData),
+      redirect: 'follow'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    let ocrData = null;
+    
+    if (result.ok && result.data) {
+      if (result.data.data && typeof result.data.data === 'object') {
+        ocrData = result.data.data;
+      } else {
+        ocrData = result.data;
+      }
+      
+      return ocrData;
+    } else {
+      throw new Error(result.msg || 'OCR 處理失敗');
+    }
+    
+  } catch (error) {
+    console.error(`處理 ${file.name} 失敗:`, error);
+    return null;
+  }
+}
+
+/**
+ * ⭐ 渲染批次辨識結果
+ */
+function renderBatchAttachmentResults() {
+  const resultsDiv = document.getElementById('batch-attachment-results');
+  const listDiv = document.getElementById('batch-attachment-list');
+  const countSpan = document.getElementById('batch-attachment-count');
+  
+  if (!resultsDiv || !listDiv) return;
+  
+  resultsDiv.classList.remove('hidden');
+  
+  if (countSpan) {
+    countSpan.textContent = batchAttachmentResults.length;
+  }
+  
+  listDiv.innerHTML = '';
+  
+  batchAttachmentResults.forEach((result, index) => {
+    const card = createBatchAttachmentCard(result, index);
+    listDiv.appendChild(card);
+  });
+}
+
+/**
+ * ⭐ 創建附圖卡片
+ */
+function createBatchAttachmentCard(result, index) {
+  const card = document.createElement('div');
+  card.className = 'bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-600 p-4';
+  card.id = `batch-attachment-${index}`;
+  
+  if (result.status === 'failed') {
+    card.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex-1">
+          <p class="font-bold text-red-600 dark:text-red-400">
+            ❌ ${result.fileName}
+          </p>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            ${result.error || '辨識失敗'}
+          </p>
+        </div>
+        <button onclick="removeBatchAttachment(${index})"
+                class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold">
+          移除
+        </button>
+      </div>
+    `;
+    return card;
+  }
+  
+  const data = result.ocrData;
+  
+  card.innerHTML = `
+    <div class="space-y-3">
+      <!-- 標題列 -->
+      <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-600">
+        <div>
+          <p class="font-bold text-gray-800 dark:text-white">${result.fileName}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">點擊欄位可編輯內容</p>
+        </div>
+        <button onclick="removeBatchAttachment(${index})"
+                class="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-semibold">
+          移除
+        </button>
+      </div>
+      
+      <!-- 可編輯欄位 -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+            文件類型
+          </label>
+          <input type="text" 
+                 id="batch-attachment-type-${index}" 
+                 value="${data.documentType || ''}"
+                 class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+            日期
+          </label>
+          <input type="date" 
+                 id="batch-attachment-date-${index}" 
+                 value="${data.date || ''}"
+                 class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+            金額
+          </label>
+          <input type="number" 
+                 id="batch-attachment-amount-${index}" 
+                 value="${data.amount || ''}"
+                 class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+        </div>
+        
+        <div>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+            公司名稱
+          </label>
+          <input type="text" 
+                 id="batch-attachment-company-${index}" 
+                 value="${data.companyName || ''}"
+                 class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">
+        </div>
+        
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+            備註
+          </label>
+          <textarea id="batch-attachment-note-${index}" 
+                    rows="2"
+                    class="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white">${data.note || ''}</textarea>
+        </div>
+      </div>
+      
+      <!-- 送出按鈕 -->
+      <button onclick="submitSingleBatchAttachment(${index})"
+              id="batch-attachment-submit-${index}"
+              class="w-full py-2 px-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-bold hover:from-purple-600 hover:to-purple-700 transition-all">
+        📤 送出此筆
+      </button>
+    </div>
+  `;
+  
+  return card;
+}
+
+/**
+ * ⭐ 移除指定附圖
+ */
+function removeBatchAttachment(index) {
+  if (!confirm('確定要移除這筆附圖嗎？')) return;
+  
+  batchAttachmentResults.splice(index, 1);
+  renderBatchAttachmentResults();
+  showNotification('已移除', 'success');
+}
+
+/**
+ * ⭐ 送出單筆附圖
+ */
+async function submitSingleBatchAttachment(index) {
+  try {
+    console.log('📤 開始送出第 ' + index + ' 筆附圖');
+    
+    const result = batchAttachmentResults[index];
+    
+    if (!result || result.status !== 'success') {
+      showNotification('此附圖辨識失敗，無法送出', 'error');
+      return;
+    }
+    
+    // 讀取編輯後的值
+    const documentType = document.getElementById(`batch-attachment-type-${index}`).value.trim();
+    const date = document.getElementById(`batch-attachment-date-${index}`).value;
+    const amount = document.getElementById(`batch-attachment-amount-${index}`).value;
+    const companyName = document.getElementById(`batch-attachment-company-${index}`).value.trim();
+    const note = document.getElementById(`batch-attachment-note-${index}`).value.trim();
+    
+    console.log('📋 讀取到的資料:');
+    console.log('   文件類型:', documentType);
+    console.log('   日期:', date);
+    console.log('   金額:', amount);
+    console.log('   公司:', companyName);
+    
+    // 轉換圖片為 Base64
+    const file = result.file;
+    let imageBase64 = '';
+    
+    if (file) {
+      imageBase64 = await fileToBase64(file);
+    }
+    
+    // 組裝資料
+    const attachmentData = {
+      documentType: documentType,
+      date: date,
+      amount: amount,
+      companyName: companyName,
+      note: note,
+      imageData: imageBase64,
+      fileName: file ? file.name : 'attachment.jpg'
+    };
+    
+    // 更新按鈕狀態
+    const button = document.getElementById(`batch-attachment-submit-${index}`);
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<span class="animate-spin">⏳</span> 送出中...';
+    }
+    
+    // 呼叫 API
+    const sessionToken = localStorage.getItem('sessionToken');
+    const response = await fetch(`${API_CONFIG.apiUrl}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'submitAttachment',
+        token: sessionToken,
+        ...attachmentData
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result_api = await response.json();
+    
+    if (result_api.ok) {
+      console.log('✅ 送出成功');
+      showNotification('附圖已送出！', 'success');
+      
+      if (button) {
+        button.innerHTML = '✅ 已送出';
+        button.classList.remove('bg-purple-500', 'hover:bg-purple-600');
+        button.classList.add('bg-gray-400', 'cursor-not-allowed');
+      }
+      
+      batchAttachmentResults[index].submitted = true;
+    } else {
+      throw new Error(result_api.msg || '送出失敗');
+    }
+    
+  } catch (error) {
+    console.error('❌ 送出失敗:', error);
+    showNotification('送出失敗: ' + error.message, 'error');
+    
+    const button = document.getElementById(`batch-attachment-submit-${index}`);
+    if (button) {
+      button.disabled = false;
+      button.innerHTML = '📤 送出此筆';
+    }
+  }
+}
+
+/**
+ * ⭐ 批次送出所有附圖
+ */
+async function submitAllBatchAttachments() {
+  const successAttachments = batchAttachmentResults.filter(r => r.status === 'success');
+  
+  if (successAttachments.length === 0) {
+    showNotification('沒有可送出的附圖', 'warning');
+    return;
+  }
+  
+  if (!confirm(`確定要送出全部 ${successAttachments.length} 筆附圖嗎？`)) {
+    return;
+  }
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (let i = 0; i < batchAttachmentResults.length; i++) {
+    const result = batchAttachmentResults[i];
+    
+    if (result.status !== 'success') continue;
+    
+    try {
+      await submitSingleBatchAttachment(i);
+      successCount++;
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error(`送出第 ${i + 1} 筆失敗:`, error);
+      failCount++;
+    }
+  }
+  
+  showNotification(
+    `✅ 批次送出完成！成功 ${successCount} 筆，失敗 ${failCount} 筆`,
+    failCount === 0 ? 'success' : 'warning'
+  );
+}
+
+/**
+ * ⭐ 重置附圖 OCR 狀態
+ */
+function resetAttachmentOCR() {
+  console.log('🔄 重置附圖 OCR 狀態');
+  
+  currentAttachmentData = null;
+  currentAttachmentFile = null;
+  
+  const previewContainer = document.getElementById('attachment-preview-container');
+  const loadingEl = document.getElementById('attachment-ocr-loading');
+  const successEl = document.getElementById('attachment-ocr-success');
+  const errorEl = document.getElementById('attachment-ocr-error');
+  
+  if (previewContainer) previewContainer.style.display = 'none';
+  if (loadingEl) loadingEl.style.display = 'none';
+  if (successEl) successEl.style.display = 'none';
+  if (errorEl) errorEl.style.display = 'none';
+  
+  const cameraInput = document.getElementById('attachment-camera-input');
+  const fileInput = document.getElementById('attachment-file-input');
+  
+  if (cameraInput) cameraInput.value = '';
+  if (fileInput) fileInput.value = '';
+  
+  console.log('✅ 附圖 OCR 狀態已重置');
+}
